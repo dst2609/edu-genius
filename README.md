@@ -6,7 +6,7 @@ Edu Genius a Full Stack web application that is based on MERN Stack.
 
 `git clone git@github.com:dst2609/edu-genius.git`
 
-`cd FlowMaster/flowmaster-api`
+`cd edu-genius/edu-genius-api`
 
 `npm install`
 
@@ -14,7 +14,7 @@ Edu Genius a Full Stack web application that is based on MERN Stack.
 
 --Open new terminal tab
 
-`cd FlowMaster/flowmaster-ui`
+`cd edu-genius/edu-genius-ui`
 
 `npm install`
 
