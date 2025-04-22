@@ -3,6 +3,9 @@ const cors = require("cors");
 const express = require("express");
 const morgan = require("morgan");
 
+// Rate limiter for security
+const { rateLimiter } = require("./security/rateSecurity");
+
 //user routers and db connection:
 const { connectToDB, createUsersCollection } = require("./db/database.js");
 
@@ -12,6 +15,8 @@ const app = express();
 app.use(morgan("dev"));
 app.use(cors());
 app.use(express.json());
+//use rate limiter here
+// app.use(rateLimiter);
 
 app.use(morgan("dev"));
 
@@ -22,7 +27,9 @@ connectToDB().then(() => {
 
   // Routes
   const userRoutes = require("./routes/userRoutes");
+  const chatRoutes = require("./routes/chatRoutes");
   app.use("/users", userRoutes);
+  app.use("/chat", chatRoutes);
 
   // Start the server
   app.listen(3000, () => {
