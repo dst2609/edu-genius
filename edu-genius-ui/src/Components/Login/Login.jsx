@@ -9,13 +9,14 @@ const Login = ({ setToken }) => {
 
   const handleLogin = async () => {
     try {
-      const response = await axios.post("http://localhost:3000/login", {
+      const response = await axios.post("http://localhost:3000/users/login", {
         username,
         password,
       });
       setToken(response.data.token);
       navigate("/dashboard");
     } catch (error) {
+      console.log("error: ", error);
       alert("Login failed");
     }
   };

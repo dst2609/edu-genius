@@ -79,7 +79,9 @@ const userController = {
   async loginUser(req, res) {
     try {
       const usersCollection = db.getUsersCollection();
-      const user = await usersCollection.findOne({ email: req.body.email });
+      const user = await usersCollection.findOne({
+        username: req.body.username,
+      });
 
       // If no user with that email found
       if (!user) {
