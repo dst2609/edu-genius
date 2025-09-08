@@ -1,0 +1,64 @@
+html, body, #root { height: 100%; margin: 0; }
+
+.register-page {
+  display: flex;
+  height: 100vh;
+  background: #F9FAFB url("/images/SignUp.svg") no-repeat left center;
+  background-size: 60vw auto;
+  align-items: center;
+  justify-content: flex-end;  /* same alignment as login */
+  padding: 40px 6vw;
+  box-sizing: border-box;
+}
+
+.register-card {
+  width: 100%;
+  max-width: 420px;
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 28px;
+  box-shadow: 0 8px 24px rgba(0,0,0,.06);
+  text-align: center;
+  box-sizing: border-box;
+}
+
+.register-card h2 {
+  margin-bottom: 24px;
+  font-size: 28px;
+  font-weight: 800;
+  color: #2563EB;        /* primary blue to match header/buttons */
+  text-align: center;    /* keep centered */
+  letter-spacing: -0.5px;
+  position: relative;
+}
+
+.register-card input {
+  box-sizing: border-box;
+  width: 100%;
+  padding: 12px 14px;
+  margin-bottom: 14px;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  font-size: 15px;
+  transition: border-color .2s, box-shadow .2s;
+}
+.register-card input:focus {
+  outline: none;
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37,99,235,.35);
+}
+
+.register-card button {
+  width: 100%;
+  padding: 12px;
+  border: none;
+  border-radius: 8px;
+  background: #2563eb;
+  color: #fff;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background .2s;
+}
+.register-card button:hover { background: #1d4ed8; }

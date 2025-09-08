@@ -1,0 +1,38 @@
+.eg-header {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background: #2563EB;          /* blue header bar */
+  color: #fff;
+  border-bottom: 1px solid #1e40af;
+}
+
+/* Inner row */
+.eg-header__inner {
+  height: 64px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 24px;
+  box-sizing: border-box;
+}
+
+/* Brand */
+.eg-title {
+  font-weight: 800;
+  font-size: 22px;
+  margin-right: 10px;
+}
+
+.eg-subtitle {
+  font-size: 14px;
+  opacity: 0.85;
+}
+
+/* Right side text */
+.eg-actions {
+  font-size: 15px;
+  font-weight: 500;
+}
