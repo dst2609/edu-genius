@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import {
   BrowserRouter as Router,
   Routes,
@@ -12,6 +12,7 @@ import AboutUs from "./Components/AboutUs/AboutUs";
 import ContactUs from "./Components/ContactUs/ContactUs";
 import Features from "./Components/Features/Features";
 import { Button, Box } from "@mui/material";
+import Dashboard from "./Components/Dashboard/Dashboard";
 
 const Home = () => {
   const navigate = useNavigate();
@@ -126,9 +127,12 @@ const Home = () => {
 };
 
 const App = () => {
+  const [token, setToken] = useState(null);
   return (
     <Router>
       <Header />
+      <Container maxWidth="sm">
+       <NavigationButtons />
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/login" element={<Login />} />
@@ -137,6 +141,7 @@ const App = () => {
         <Route path="/contact" element={<ContactUs />} />
         <Route path="/features" element={<Features />} />
       </Routes>
+      </Container>
     </Router>
   );
 };
