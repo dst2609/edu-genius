@@ -1,0 +1,95 @@
+html, body, #root {
+  height: 100%;
+  margin: 0;
+}
+
+/* prevent horizontal scrollbars from the full-bleed trick */
+body { overflow-x: hidden; }
+
+/* Full-bleed section + left illustration */
+.register-page {
+  /* full-bleed (span entire viewport even inside centered containers) */
+  position: relative;
+  left: 50%;
+  right: 50%;
+  margin-left: -50vw;
+  margin-right: -50vw;
+  width: 100vw;
+  max-width: 100vw;
+
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;     /* card on the right */
+  height: 100vh;
+  padding: 40px 6vw;
+  box-sizing: border-box;
+
+  /* left-side SVG background */
+  background: #F9FAFB url("/images/SignUp.svg") no-repeat left center;
+  /* choose ONE of the two lines below */
+  background-size: 55% auto;     /* proportional scale, tweak 40–60% */
+  /* background-size: 50% 100%;  */ /* exact half width, full height */
+}
+
+/* Card */
+.register-card {
+  width: 100%;
+  max-width: 420px;
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 28px;
+  box-shadow: 0 8px 24px rgba(0,0,0,.06);
+  text-align: center;
+  box-sizing: border-box;
+}
+
+/* Title */
+.register-card h2 {
+  margin-bottom: 24px;
+  font-size: 28px;
+  font-weight: 800;
+  color: #2563EB;
+  letter-spacing: -0.5px;
+}
+
+/* Inputs */
+.register-card input {
+  box-sizing: border-box;
+  width: 100%;
+  padding: 12px 14px;
+  margin-bottom: 14px;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  font-size: 15px;
+  transition: border-color .2s, box-shadow .2s;
+}
+.register-card input:focus {
+  outline: none;
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37,99,235,.35);
+}
+
+/* Button */
+.register-card button {
+  width: 100%;
+  padding: 12px;
+  border: none;
+  border-radius: 8px;
+  background: #2563eb;
+  color: #fff;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background .2s;
+}
+.register-card button:hover { background: #1d4ed8; }
+
+/* Mobile: hide illustration and center the card */
+@media (max-width: 768px) {
+  .register-page {
+    justify-content: center;
+    background: #F9FAFB;
+    padding: 24px;
+  }
+}
