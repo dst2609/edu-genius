@@ -5,6 +5,7 @@ import {
   Route,
   useNavigate,
 } from "react-router-dom";
+import Header from "./Components/Header/Header";
 import Register from "./Components/Register/Register";
 import Login from "./Components/Login/Login";
 import { Button, Box, Container } from "@mui/material";
@@ -23,11 +24,25 @@ const NavigationButtons = () => {
         Login
       </Button>
       <Button
-        variant="outlined"
+        variant="contained"
         sx={{ m: 1 }}
         onClick={() => navigate("/register")}
       >
         Register
+      </Button>
+      <Button
+        variant="contained"
+        sx={{ m: 1 }}
+        onClick={() => navigate("/aboutus")}
+      >
+        About Us
+      </Button>
+      <Button
+        variant="contained"
+        sx={{ m: 1 }}
+        onClick={() => navigate("/contactus")}
+      >
+        Contact Us
       </Button>
     </Box>
   );
@@ -36,10 +51,11 @@ const NavigationButtons = () => {
 const App = () => {
   const [token, setToken] = useState(null);
   return (
-    <Router>
+    <Router>        
+       <Header />
       <Container maxWidth="sm">
-        <NavigationButtons />
         <Routes>
+           <Route path="/" element={<NavigationButtons />} />
           <Route path="/login" element={<Login setToken={setToken} />} />
           <Route path="/register" element={<Register />} />
           <Route path="/dashboard" element={<Dashboard />} />
