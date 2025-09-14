@@ -1,4 +1,3 @@
-// userController.js
 const db = require("../db/database.js");
 const { ObjectId } = require("mongodb");
 const bcrypt = require("bcrypt");
@@ -14,7 +13,7 @@ const userController = {
         .find(
           {},
           {
-            projection: { _id: 1, email: 1 }, // Only fetch _id and email
+            projection: { _id: 1, email: 1 },
           }
         )
         .toArray();
@@ -31,7 +30,7 @@ const userController = {
   },
 
   async getUserByEmail(req, res) {
-    const email = req.params.email; // Get the email from the route parameter
+    const email = req.params.email;
     try {
       const usersCollection = db.getUsersCollection();
       const user = await usersCollection.findOne({ email: email });
@@ -51,14 +50,23 @@ const userController = {
     try {
       const usersCollection = db.getUsersCollection();
 
+      // Check for duplicate email
+      const existingUser = await usersCollection.findOne({
+        email: req.body.email,
+      });
+      if (existingUser) {
+        return res.status(400).json({ error: "Email already exists" });
+      }
+
       // Hash the password before saving the user
       const salt = await bcrypt.genSalt(10);
       const hashedPassword = await bcrypt.hash(req.body.password, salt);
 
       const newUser = {
-        _id: new ObjectId(), // Generate unique ID
-        ...req.body, //Include other item properties from the request body
-        password: hashedPassword, // Override the plain text password with the hashed one
+        _id: new ObjectId(),
+        ...req.body,
+        password: hashedPassword,
+        createdAt: new Date(),
       };
 
       const result = await usersCollection.insertOne(newUser);
@@ -68,11 +76,11 @@ const userController = {
       if (result.acknowledged) {
         res.status(201).json(result.insertedId);
       } else {
-        throw new Error("Failed to register user ");
+        throw new Error("Failed to register user");
       }
     } catch (err) {
       console.error("Failed to register user: ", err);
-      res.status(500).json({ error: "Failed to create menu item" });
+      res.status(500).json({ error: "Failed to create user" });
     }
   },
 
@@ -80,10 +88,9 @@ const userController = {
     try {
       const usersCollection = db.getUsersCollection();
       const user = await usersCollection.findOne({
-        username: req.body.username,
+        email: req.body.email,
       });
 
-      // If no user with that email found
       if (!user) {
         return res.status(400).json({ error: "User not found" });
       }
@@ -93,22 +100,52 @@ const userController = {
         user.password
       );
 
-      // If password doesn't match
       if (!validPassword) {
         return res.status(400).json({ error: "Invalid password" });
       }
 
-      // Sign a JWT token
-      const token = jwt.sign({ _id: user._id }, process.env.JWT_SECRET, {
-        expiresIn: "1h",
-      });
-      console.log("token is : ", token);
+      const token = jwt.sign(
+        { _id: user._id.toString() },
+        process.env.JWT_SECRET,
+        {
+          expiresIn: "1h",
+        }
+      );
+      console.log("token is: ", token);
 
-      // Respond with the token
       res.status(200).json({ token, message: "Logged in successfully" });
     } catch (err) {
       console.error("Failed to login user: ", err);
       res.status(500).json({ error: "Failed to login user" });
+    }
+  },
+
+  async getUserProfile(req, res) {
+    try {
+      const usersCollection = db.getUsersCollection();
+      console.log("req.user:", req.user);
+      if (!ObjectId.isValid(req.user)) {
+        console.log("Invalid ObjectId:", req.user);
+        return res.status(400).json({ message: "Invalid user ID" });
+      }
+
+      const userId = new ObjectId(req.user);
+      console.log("Querying user with _id:", userId);
+      const user = await usersCollection.findOne(
+        { _id: userId },
+        { projection: { password: 0 } }
+      );
+
+      if (!user) {
+        console.log("User not found for _id:", userId);
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      console.log("Found user:", user);
+      res.status(200).json(user);
+    } catch (err) {
+      console.error("Error retrieving user profile: ", err);
+      res.status(500).json({ error: "Failed to retrieve user profile" });
     }
   },
 };
