@@ -1,35 +1,44 @@
 import React, { useState } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
+import { Alert } from "@mui/material";
 import "./login.css";
 
 const Login = ({ setToken }) => {
-  const [username, setUsername] = useState("");
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [error, setError] = useState(null);
   const navigate = useNavigate();
 
   const handleLogin = async () => {
     try {
       const response = await axios.post("http://localhost:3000/users/login", {
-        username,
+        email,
         password,
       });
-      setToken(response.data.token);
+      const { token } = response.data;
+      localStorage.setItem("token", token);
+      setToken(token);
       navigate("/dashboard");
     } catch (error) {
       console.log("error: ", error);
-      alert("Login failed");
+      setError(error.response?.data?.error || "Login failed");
     }
   };
 
   return (
-     <div className="login-page">
+    <div className="login-page">
       <div className="login-card">
         <h2>Login</h2>
+        {error && (
+          <Alert severity="error" sx={{ mb: "14px" }}>
+            {error}
+          </Alert>
+        )}
         <input
           type="text"
-          placeholder="Username"
-          onChange={(e) => setUsername(e.target.value)}
+          placeholder="Email"
+          onChange={(e) => setEmail(e.target.value)}
         />
         <input
           type="password"
@@ -38,7 +47,7 @@ const Login = ({ setToken }) => {
         />
         <button onClick={handleLogin}>Login</button>
       </div>
-     </div>
+    </div>
   );
 };
 

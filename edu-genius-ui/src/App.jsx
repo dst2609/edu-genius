@@ -8,8 +8,9 @@ import {
 import Header from "./Components/Header/Header";
 import Register from "./Components/Register/Register";
 import Login from "./Components/Login/Login";
-import { Button, Box, Container } from "@mui/material";
 import Dashboard from "./Components/Dashboard/Dashboard";
+import UserProfile from "./Components/UserProfile/UserProfile";
+import { Button, Box, Container } from "@mui/material";
 
 const NavigationButtons = () => {
   const navigate = useNavigate();
@@ -33,32 +34,33 @@ const NavigationButtons = () => {
       <Button
         variant="contained"
         sx={{ m: 1 }}
-        onClick={() => navigate("/aboutus")}
+        onClick={() => navigate("/dashboard")}
       >
-        About Us
+        Dashboard
       </Button>
       <Button
         variant="contained"
         sx={{ m: 1 }}
-        onClick={() => navigate("/contactus")}
+        onClick={() => navigate("/profile")}
       >
-        Contact Us
+        Profile
       </Button>
     </Box>
   );
 };
 
 const App = () => {
-  const [token, setToken] = useState(null);
+  const [token, setToken] = useState(localStorage.getItem("token"));
   return (
-    <Router>        
-       <Header />
+    <Router>
+      <Header />
       <Container maxWidth="sm">
         <Routes>
-           <Route path="/" element={<NavigationButtons />} />
+          <Route path="/" element={<NavigationButtons />} />
           <Route path="/login" element={<Login setToken={setToken} />} />
           <Route path="/register" element={<Register />} />
           <Route path="/dashboard" element={<Dashboard />} />
+          <Route path="/profile" element={<UserProfile />} />
         </Routes>
       </Container>
     </Router>
