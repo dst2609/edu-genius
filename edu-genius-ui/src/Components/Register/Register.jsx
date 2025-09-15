@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
+import { Alert } from "@mui/material";
 import "./register.css";
 
 const Register = () => {
@@ -9,23 +10,27 @@ const Register = () => {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [email, setEmail] = useState("");
+  const [error, setError] = useState(null);
   const navigate = useNavigate();
 
   const handleRegister = async () => {
     try {
       await axios.post("http://localhost:3000/users/register", {
+        firstname,
+        lastname,
         username,
+        email,
         password,
       });
-      alert("Registration successful");
       navigate("/login");
     } catch (error) {
-      alert("Registration failed");
+      console.log("error: ", error);
+      setError(error.response?.data?.error || "Registration failed");
     }
   };
 
   return (
-        <div className="register-page">
+    <div className="register-page">
       {/* left illustration */}
       <div className="register-illustration"></div>
 
@@ -33,6 +38,11 @@ const Register = () => {
       <div className="register-form-wrapper">
         <div className="register-card">
           <h2>Register</h2>
+          {error && (
+            <Alert severity="error" sx={{ mb: "14px" }}>
+              {error}
+            </Alert>
+          )}
           <input
             type="text"
             placeholder="First Name"
@@ -49,14 +59,14 @@ const Register = () => {
             onChange={(e) => setUsername(e.target.value)}
           />
           <input
-            type="password"
-            placeholder="Password"
-            onChange={(e) => setPassword(e.target.value)}
-          />
-          <input
             type="text"
             placeholder="Email"
             onChange={(e) => setEmail(e.target.value)}
+          />
+          <input
+            type="password"
+            placeholder="Password"
+            onChange={(e) => setPassword(e.target.value)}
           />
           <button onClick={handleRegister}>Register</button>
         </div>

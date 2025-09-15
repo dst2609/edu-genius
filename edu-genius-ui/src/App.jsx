@@ -34,23 +34,23 @@ const NavigationButtons = () => {
       <Button
         variant="contained"
         sx={{ m: 1 }}
-        onClick={() => navigate("/aboutus")}
+        onClick={() => navigate("/dashboard")}
       >
-        About Us
+        Dashboard
       </Button>
       <Button
         variant="contained"
         sx={{ m: 1 }}
-        onClick={() => navigate("/contactus")}
+        onClick={() => navigate("/profile")}
       >
-        Contact Us
+        Profile
       </Button>
     </Box>
   );
 };
 
 const App = () => {
-  const [token, setToken] = useState(null);
+  const [token, setToken] = useState(localStorage.getItem("token"));
   return (
     <Router>
       <Header />
