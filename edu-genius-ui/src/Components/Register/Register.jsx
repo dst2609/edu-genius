@@ -1,15 +1,23 @@
 import React, { useState } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
-import { Alert } from "@mui/material";
+import {
+  Alert,
+  MenuItem,
+  Select,
+  InputLabel,
+  FormControl,
+} from "@mui/material";
 import "./register.css";
 
 const Register = () => {
   const [firstname, setFirstname] = useState("");
   const [lastname, setLastname] = useState("");
   const [username, setUsername] = useState("");
-  const [password, setPassword] = useState("");
   const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [gradeLevel, setGradeLevel] = useState("");
+  const [region, setRegion] = useState("");
   const [error, setError] = useState(null);
   const navigate = useNavigate();
 
@@ -21,6 +29,8 @@ const Register = () => {
         username,
         email,
         password,
+        gradeLevel,
+        region,
       });
       navigate("/login");
     } catch (error) {
@@ -68,6 +78,28 @@ const Register = () => {
             placeholder="Password"
             onChange={(e) => setPassword(e.target.value)}
           />
+          <input
+            type="text"
+            placeholder="Grade Level"
+            onChange={(e) => setGradeLevel(e.target.value)}
+          />
+          <FormControl fullWidth sx={{ mb: "14px" }}>
+            <InputLabel>Region</InputLabel>
+            <Select
+              value={region}
+              label="Region"
+              onChange={(e) => setRegion(e.target.value)}
+            >
+              <MenuItem value="North America">North America</MenuItem>
+              <MenuItem value="Central/South America">
+                Central/South America
+              </MenuItem>
+              <MenuItem value="Europe">Europe</MenuItem>
+              <MenuItem value="Asia">Asia</MenuItem>
+              <MenuItem value="Australia">Australia</MenuItem>
+              <MenuItem value="Universal">Universal</MenuItem>
+            </Select>
+          </FormControl>
           <button onClick={handleRegister}>Register</button>
         </div>
       </div>

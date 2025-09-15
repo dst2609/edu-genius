@@ -148,6 +148,51 @@ const userController = {
       res.status(500).json({ error: "Failed to retrieve user profile" });
     }
   },
+
+  async updateUserProfile(req, res) {
+    try {
+      const usersCollection = db.getUsersCollection();
+      if (!ObjectId.isValid(req.user)) {
+        console.log("Invalid ObjectId:", req.user);
+        return res.status(400).json({ message: "Invalid user ID" });
+      }
+
+      const userId = new ObjectId(req.user);
+      const { firstname, lastname, username, gradeLevel, region } = req.body;
+
+      // Validate input (basic example)
+      if (!firstname || !lastname || !username) {
+        return res
+          .status(400)
+          .json({ error: "First name, last name, and username are required" });
+      }
+
+      const updateData = {
+        firstname,
+        lastname,
+        username,
+        gradeLevel: gradeLevel || "",
+        region: region || "",
+        updatedAt: new Date(),
+      };
+
+      const result = await usersCollection.updateOne(
+        { _id: userId },
+        { $set: updateData }
+      );
+
+      if (result.matchedCount === 0) {
+        console.log("User not found for _id:", userId);
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      console.log("Updated user:", updateData);
+      res.status(200).json({ message: "Profile updated successfully" });
+    } catch (err) {
+      console.error("Error updating user profile: ", err);
+      res.status(500).json({ error: "Failed to update user profile" });
+    }
+  },
 };
 
 module.exports = userController;

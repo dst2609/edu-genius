@@ -22,6 +22,7 @@ const authMiddleware = (req, res, next) => {
 router.get("/", userController.getAllUsers);
 router.post("/register", userController.regUser);
 router.get("/profile", authMiddleware, userController.getUserProfile);
+router.put("/profile", authMiddleware, userController.updateUserProfile);
 router.post("/login", userController.loginUser);
 router.get("/:email", userController.getUserByEmail);
 
