@@ -17,3 +17,17 @@ cd frontend
 cp .env.example .env
 npm install
 npm run dev
+
+## frontend/.env content
+# === EduGenius UI Config ===
+VITE_APP_NAME=EduGenius
+
+# Set true once your API server exists
+VITE_USE_API_SERVER=false
+VITE_API_SERVER_BASE=http://localhost:3001
+VITE_API_SERVER_CHAT_PATH=/chat
+
+# Direct OpenAI (DEV ONLY). Do not use in production
+VITE_OPENAI_BASE_URL=https://api.openai.com/v1
+VITE_OPENAI_MODEL=gpt-4
+VITE_OPENAI_API_KEY=[add your own key here]
