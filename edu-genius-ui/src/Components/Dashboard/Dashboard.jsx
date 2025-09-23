@@ -20,6 +20,14 @@ const Dashboard = () => {
       >
         View Profile
       </Button>
+    <br/>
+      <Button
+        variant="contained"
+        sx={{ mt: 2 }}
+        onClick={() => navigate("/chat")}
+      >
+        ChatBot
+      </Button>
     </Box>
   );
 };

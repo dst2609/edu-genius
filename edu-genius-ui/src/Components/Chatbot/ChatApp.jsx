@@ -1,0 +1,421 @@
+// App.jsx
+import React, { useEffect, useRef, useState } from "react";
+import "./ChatApp.css";
+import {AIClient } from "./lib/ai/client.js";
+import { APP_NAME } from "./lib/config.js";
+import Sidebar from "./Sidebar.jsx";   // adjust if needed
+import Spinner from "./Spinner.jsx";   // adjust if needed
+
+const ai = new AIClient();
+
+// Newest first by updatedAt
+const sortByUpdatedAtDesc = (arr) =>
+  [...arr].sort((a, b) => new Date(b?.updatedAt || 0) - new Date(a?.updatedAt || 0));
+
+export default function App() {
+  const role = localStorage.getItem("role") || "student";
+
+  const [conversations, setConversations] = useState([]);
+  const [activeId, setActiveId] = useState(null);
+  const [messages, setMessages] = useState([]);
+  const [input, setInput] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  const listRef = useRef(null);
+  const composerRef = useRef(null);
+
+  // Delete confirm + toast state
+  const [confirmDelete, setConfirmDelete] = useState({ open: false, id: null });
+  const [toast, setToast] = useState({ open: false, message: "", actionText: "", onAction: null });
+  const lastDeletedRef = useRef(null);
+
+  /* ─────────────── Load conversations on mount ─────────────── */
+  useEffect(() => {
+    (async () => {
+      const list = await ai.listConversations();
+      const sorted = sortByUpdatedAtDesc(list);
+      setConversations(sorted);
+      if (sorted.length > 0) setActiveId(sorted[0].id);
+      else {
+        const c = await ai.createConversation("New Chat");
+        setConversations([c]);
+        setActiveId(c.id);
+      }
+    })();
+  }, []);
+
+  /* ─────────────── Load messages when activeId changes ─────── */
+  useEffect(() => {
+    (async () => {
+      if (!activeId) return;
+      const msgs = await ai.getMessages(activeId);
+      setMessages(msgs);
+      setTimeout(
+        () => listRef.current?.scrollTo({ top: listRef.current.scrollHeight, behavior: "smooth" }),
+        50
+      );
+    })();
+  }, [activeId]);
+
+  /* ─────────────── Helpers / Actions ─────────────── */
+
+  // Nudge view so the textbox is fully visible (esp. mobile keyboards)
+  const ensureComposerVisible = () => {
+    listRef.current?.scrollTo({
+      top: listRef.current.scrollHeight,
+      behavior: "smooth",
+    });
+    composerRef.current?.scrollIntoView({ block: "nearest", behavior: "smooth" });
+  };
+
+  const startNewChat = async () => {
+    const c = await ai.createConversation("New Chat");
+    setConversations((prev) => [c, ...prev]);
+    setActiveId(c.id);
+    setMessages([]);
+    setInput("");
+  };
+
+  const onDelete = (id) => setConfirmDelete({ open: true, id });
+
+  const trulyDeleteConversation = async (id) => {
+    if (ai.deleteConversation) {
+      try { await ai.deleteConversation(id); } catch {}
+    }
+    const nextList = conversations.filter((c) => c.id !== id);
+    setConversations(sortByUpdatedAtDesc(nextList));
+
+    if (id === activeId) {
+      if (nextList.length > 0) setActiveId(nextList[0].id);
+      else {
+        const c = await ai.createConversation("New Chat");
+        setConversations([c]);
+        setActiveId(c.id);
+      }
+      setMessages([]);
+    }
+  };
+
+  const handleConfirmDelete = async () => {
+    const id = confirmDelete.id;
+    const removed = conversations.find((c) => c.id === id) || null;
+    lastDeletedRef.current = removed ? { convo: removed } : null;
+
+    setConfirmDelete({ open: false, id: null });
+    await trulyDeleteConversation(id);
+
+    setToast({
+      open: true,
+      message: "Conversation deleted.",
+      actionText: "Undo",
+      onAction: handleUndoDelete,
+    });
+  };
+
+  const handleUndoDelete = async () => {
+    const deleted = lastDeletedRef.current?.convo;
+    if (!deleted) return;
+
+    try {
+      if (ai.restoreConversation) {
+        const restored = await ai.restoreConversation(deleted.id);
+        setConversations((prev) => sortByUpdatedAtDesc([restored, ...prev]));
+        setActiveId(restored.id);
+      } else {
+        const recreated = await ai.createConversation(deleted.title || "New Chat");
+        setConversations((prev) => sortByUpdatedAtDesc([recreated, ...prev]));
+        setActiveId(recreated.id);
+      }
+    } catch (e) {
+      console.error("Undo failed:", e);
+    }
+  };
+
+  const selectConversation = (id) => {
+    if (id === activeId) return;
+    setActiveId(id);
+    setInput("");
+  };
+
+  // Title helpers
+  const makeFallbackTitle = (text) => {
+    const clean = (text || "New Chat").replace(/\s+/g, " ").trim();
+    const max = 42;
+    return clean.length > max ? clean.slice(0, max - 1) + "…" : clean;
+  };
+
+  const regenerateTitle = async (id) => {
+    try {
+      const msgs = id === activeId ? messages : await ai.getMessages(id);
+      const firstUser = msgs.find((m) => m.role === "user");
+      let title = null;
+
+      if (ai.suggestTitle) {
+        const resp = await ai.suggestTitle({ threadId: id, seed: firstUser?.content || "" });
+        title = resp?.title || null;
+      }
+      if (!title) title = makeFallbackTitle(firstUser?.content || "New Chat");
+
+      await renameConversation(id, title, { manual: false });
+    } catch (e) {
+      console.error("Regenerate title failed:", e);
+    }
+  };
+
+  // Rename supports inline edit: (id, title?) — if no title, prompt()
+  const renameConversation = async (id, maybeTitle, opts = { manual: true }) => {
+    let title = maybeTitle;
+    const current = conversations.find((c) => c.id === id);
+    const prevTitle = current?.title || "New Chat";
+
+    if (typeof title !== "string") {
+      const inputName = window.prompt("Rename conversation:", prevTitle);
+      if (inputName == null) return; // cancelled
+      title = inputName.trim() || "New Chat";
+      opts = { manual: true };
+    }
+
+    // optimistic + bump updatedAt, then re-sort so it jumps to top
+    setConversations((prev) =>
+      sortByUpdatedAtDesc(
+        prev.map((c) =>
+          c.id === id
+            ? { ...c, title, manuallyTitled: !!opts.manual, updatedAt: new Date().toISOString() }
+            : c
+        )
+      )
+    );
+
+    try {
+      if (ai.renameConversation) {
+        await ai.renameConversation(id, title);
+      } else if (ai.updateConversationTitle) {
+        await ai.updateConversationTitle(id, title);
+      } else if (ai.updateConversation) {
+        await ai.updateConversation(id, { title });
+      }
+    } catch (e) {
+      // Rollback title if backend fails
+      setConversations((prev) =>
+        sortByUpdatedAtDesc(prev.map((c) => (c.id === id ? { ...c, title: prevTitle } : c)))
+      );
+      console.error("Rename failed:", e);
+    }
+  };
+
+  const send = async () => {
+    const text = input.trim();
+    if (!text || !activeId) return;
+
+    const isFirstMessageOfThread = messages.length === 0;
+
+    setInput("");
+    const optimistic = { role: "user", content: text, createdAt: new Date().toISOString() };
+    setMessages((m) => [...m, optimistic]);
+    setLoading(true);
+
+    try {
+      const resp = await ai.chat({ threadId: activeId, message: text });
+      setMessages((m) => [...m, { role: "assistant", content: resp.content, createdAt: resp.createdAt }]);
+
+      // bump updatedAt and re-sort
+      setConversations((prev) => {
+        const copy = [...prev];
+        const idx = copy.findIndex((c) => c.id === activeId);
+        if (idx >= 0) copy[idx] = { ...copy[idx], updatedAt: new Date().toISOString() };
+        return sortByUpdatedAtDesc(copy);
+      });
+
+      // Auto-title after first turn if still default and not manually titled
+      const convo = conversations.find((c) => c.id === activeId);
+      if (isFirstMessageOfThread && convo && (!convo.title || convo.title === "New Chat") && !convo.manuallyTitled) {
+        await regenerateTitle(activeId);
+      }
+    } catch (e) {
+      setMessages((m) => [
+        ...m,
+        { role: "assistant", content: `⚠️ ${e.message}`, createdAt: new Date().toISOString() },
+      ]);
+    } finally {
+      setLoading(false);
+      setTimeout(
+        () => listRef.current?.scrollTo({ top: listRef.current.scrollHeight, behavior: "smooth" }),
+        50
+      );
+    }
+  };
+
+  const onKeyDown = (e) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      send();
+    }
+  };
+
+  /* ─────────────── Render ─────────────── */
+
+  return (
+    // Dynamic viewport height so mobile keyboards don’t cover the composer
+    <div className="h-[100dvh] flex bg-neutral-50 overflow-y-auto">
+      {/* Left Sidebar */}
+      <Sidebar
+        conversations={conversations}
+        activeId={activeId}
+        onNewChat={startNewChat}
+        onSelect={selectConversation}
+        onDelete={onDelete}                   // opens confirm modal
+        onRename={renameConversation}         // supports (id, title?)
+        onRegenerateTitle={regenerateTitle}
+      />
+
+      {/* Main Chat */}
+      <div className="flex-1 flex flex-col min-h-0">
+        <header className="px-4 py-3 border-b bg-white flex items-center justify-between">
+          <h1 className="font-semibold">{APP_NAME}</h1>
+          <div className="text-sm opacity-70">Role: {role}</div>
+        </header>
+
+        {/* Outer padding for the chat card */}
+        <div className="p-4 pb-6 flex-1 flex flex-col min-h-0">
+          {/* Chat card (messages + composer inside) */}
+          <div className="flex-1 flex flex-col min-h-0 border rounded-xl bg-white overflow-hidden">
+            {/* Scrollable messages */}
+            <div ref={listRef} className="flex-1 overflow-auto p-4 space-y-3">
+              {messages.length === 0 && !loading && (
+                <div className="text-neutral-500 text-sm">
+                  Start a conversation. Example: <em>“Explain the Pythagorean theorem.”</em>
+                </div>
+              )}
+
+              {messages.map((m, idx) => (
+                <div key={idx} className={m.role === "user" ? "text-right" : "text-left"}>
+                  <div
+                    className={
+                      "inline-block px-3 py-2 rounded " +
+                      (m.role === "user" ? "bg-indigo-600 text-white" : "bg-neutral-100")
+                    }
+                  >
+                    {m.content}
+                  </div>
+                </div>
+              ))}
+
+              {loading && (
+                <div className="text-left">
+                  <div className="inline-block px-3 py-2 rounded bg-neutral-100">
+                    <Spinner />
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Composer (inside card, rounded input group, button inside) */}
+            <div
+              ref={composerRef}
+              className="border-t p-3 pb-[max(12px,env(safe-area-inset-bottom))] bg-white"
+            >
+              <div className="flex items-end gap-2 rounded-xl ring-1 ring-neutral-200 bg-white focus-within:ring-2 focus-within:ring-indigo-500">
+                <textarea
+                  value={input}
+                  onChange={(e) => setInput(e.target.value)}
+                  onKeyDown={onKeyDown}
+                  onFocus={ensureComposerVisible}
+                  placeholder="Type your message..."
+                  className="flex-1 resize-none outline-none bg-transparent border-0 p-3 min-h-[44px] max-h-40 leading-6"
+                  rows={1}
+                />
+                <button
+                  onClick={send}
+                  disabled={loading || !input.trim()}
+                  className="m-1 h-9 w-9 rounded-lg flex items-center justify-center bg-neutral-100 hover:bg-neutral-200 disabled:opacity-60 disabled:cursor-not-allowed"
+                  title="Send"
+                >
+                  {loading ? (
+                    <Spinner />
+                  ) : (
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" className="h-5 w-5">
+                      <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z" />
+                    </svg>
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Confirm Delete Modal */}
+      <ConfirmModal
+        open={confirmDelete.open}
+        title="Delete conversation?"
+        message="This will remove the conversation. You can undo right after."
+        confirmText="Delete"
+        onConfirm={handleConfirmDelete}
+        onCancel={() => setConfirmDelete({ open: false, id: null })}
+      />
+
+      {/* Toast (Undo) */}
+      <Toast
+        open={toast.open}
+        message={toast.message}
+        actionText={toast.actionText}
+        onAction={toast.onAction}
+        onClose={() => setToast((t) => ({ ...t, open: false }))}
+      />
+    </div>
+  );
+}
+
+/* ─────────────── Small UI helpers ─────────────── */
+
+function ConfirmModal({ open, title, message, confirmText = "Confirm", cancelText = "Cancel", onConfirm, onCancel }) {
+  if (!open) return null;
+  return (
+    <div className="fixed inset-0 z-40 flex items-center justify-center">
+      <div className="absolute inset-0 bg-black/30" onClick={onCancel} />
+      <div className="relative z-10 bg-white rounded-xl p-4 w-80 shadow-lg">
+        <div className="font-semibold mb-1">{title}</div>
+        <div className="text-sm text-neutral-600 mb-4">{message}</div>
+        <div className="flex justify-end gap-2">
+          <button onClick={onCancel} className="px-3 py-1.5 rounded bg-neutral-200">
+            {cancelText}
+          </button>
+          <button onClick={onConfirm} className="px-3 py-1.5 rounded bg-red-600 text-white">
+            {confirmText}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function Toast({ open, message, actionText, onAction, onClose, duration = 4500 }) {
+  const timerRef = useRef();
+  useEffect(() => {
+    if (!open) return;
+    timerRef.current = setTimeout(() => onClose?.(), duration);
+    return () => clearTimeout(timerRef.current);
+  }, [open, duration, onClose]);
+
+  if (!open) return null;
+
+  return (
+    <div className="fixed bottom-4 right-4 z-50">
+      <div className="bg-neutral-900 text-white rounded-xl shadow-lg px-4 py-3 flex items-center gap-3">
+        <span className="text-sm">{message}</span>
+        {actionText && (
+          <button
+            className="text-sm underline"
+            onClick={() => {
+              clearTimeout(timerRef.current);
+              onAction?.();
+              onClose?.();
+            }}
+          >
+            {actionText}
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}

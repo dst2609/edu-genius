@@ -1,6 +1,13 @@
-import ConversationItem from "./ConversationItem";
-
-export default function Sidebar({ conversations, activeId, onNewChat, onSelect, onDelete }) {
+import ConversationItem from "./ConversationItem.jsx";
+export default function Sidebar({
+  conversations,
+  activeId,
+  onNewChat,
+  onSelect,
+  onDelete,
+  onRename,
+  onRegenerateTitle,
+}) {
   return (
     <aside className="w-64 border-r bg-white flex flex-col">
       <div className="p-3 border-b flex items-center justify-between">
@@ -23,11 +30,13 @@ export default function Sidebar({ conversations, activeId, onNewChat, onSelect, 
         ) : (
           conversations.map((c) => (
             <ConversationItem
-              key={c.id}                     // 👈 stable key by id
+              key={c.id}
               convo={c}
               active={c.id === activeId}
               onClick={() => onSelect(c.id)}
-              onDelete={() => onDelete(c.id)}  // 👈 bind THIS row’s id
+              onDelete={() => onDelete(c.id)}
+              onRename={(title) => onRename(c.id, title)}         // pass title up
+              onRegenerateTitle={() => onRegenerateTitle(c.id)}   // menu action
             />
           ))
         )}

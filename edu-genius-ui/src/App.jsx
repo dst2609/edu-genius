@@ -10,6 +10,7 @@ import Register from "./Components/Register/Register";
 import Login from "./Components/Login/Login";
 import Dashboard from "./Components/Dashboard/Dashboard";
 import UserProfile from "./Components/UserProfile/UserProfile";
+import Chatbot from "./Components/Chatbot/Chatbot.jsx";
 import { Button, Box, Container } from "@mui/material";
 
 const NavigationButtons = () => {
@@ -45,6 +46,7 @@ const NavigationButtons = () => {
       >
         Profile
       </Button>
+
     </Box>
   );
 };
@@ -61,6 +63,7 @@ const App = () => {
           <Route path="/register" element={<Register />} />
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/profile" element={<UserProfile />} />
+          <Route path="/chat" element={<Chatbot />} />
         </Routes>
       </Container>
     </Router>
