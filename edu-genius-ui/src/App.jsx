@@ -17,7 +17,7 @@ const NavigationButtons = () => {
 
   return (
     <Box sx={{ textAlign: "center", mt: 4 }}>
-      <Button
+      {/* <Button
         variant="contained"
         sx={{ m: 1 }}
         onClick={() => navigate("/login")}
@@ -30,7 +30,7 @@ const NavigationButtons = () => {
         onClick={() => navigate("/register")}
       >
         Register
-      </Button>
+      </Button> */}
       <Button
         variant="contained"
         sx={{ m: 1 }}
