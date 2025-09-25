@@ -7,8 +7,6 @@ import Sidebar from "./Sidebar.jsx";
 import Spinner from "./Spinner.jsx";
 
 const ai = new AIClient();
-
-// Newest first by updatedAt
 const sortByUpdatedAtDesc = (arr) =>
   [...arr].sort((a, b) => new Date(b?.updatedAt || 0) - new Date(a?.updatedAt || 0));
 
@@ -24,12 +22,11 @@ export default function App() {
   const listRef = useRef(null);
   const composerRef = useRef(null);
 
-  // Delete confirm + toast state
   const [confirmDelete, setConfirmDelete] = useState({ open: false, id: null });
   const [toast, setToast] = useState({ open: false, message: "", actionText: "", onAction: null });
   const lastDeletedRef = useRef(null);
 
-  /* ─────────────── Load conversations on mount ─────────────── */
+  /* ─────────────── Load conversations ─────────────── */
   useEffect(() => {
     (async () => {
       const list = await ai.listConversations();
@@ -44,7 +41,7 @@ export default function App() {
     })();
   }, []);
 
-  /* ─────────────── Load messages when activeId changes ─────── */
+  /* ─────────────── Load messages ─────────────── */
   useEffect(() => {
     (async () => {
       if (!activeId) return;
@@ -57,14 +54,8 @@ export default function App() {
     })();
   }, [activeId]);
 
-  /* ─────────────── Helpers / Actions ─────────────── */
-
-  // Nudge view so the textbox is fully visible (esp. mobile keyboards)
   const ensureComposerVisible = () => {
-    listRef.current?.scrollTo({
-      top: listRef.current.scrollHeight,
-      behavior: "smooth",
-    });
+    listRef.current?.scrollTo({ top: listRef.current.scrollHeight, behavior: "smooth" });
     composerRef.current?.scrollIntoView({ block: "nearest", behavior: "smooth" });
   };
 
@@ -139,7 +130,6 @@ export default function App() {
     setInput("");
   };
 
-  // Title helpers
   const makeFallbackTitle = (text) => {
     const clean = (text || "New Chat").replace(/\s+/g, " ").trim();
     const max = 42;
@@ -164,7 +154,6 @@ export default function App() {
     }
   };
 
-  // Rename supports inline edit: (id, title?) — if no title, prompt()
   const renameConversation = async (id, maybeTitle, opts = { manual: true }) => {
     let title = maybeTitle;
     const current = conversations.find((c) => c.id === id);
@@ -172,12 +161,11 @@ export default function App() {
 
     if (typeof title !== "string") {
       const inputName = window.prompt("Rename conversation:", prevTitle);
-      if (inputName == null) return; // cancelled
+      if (inputName == null) return;
       title = inputName.trim() || "New Chat";
       opts = { manual: true };
     }
 
-    // optimistic + bump updatedAt, then re-sort so it jumps to top
     setConversations((prev) =>
       sortByUpdatedAtDesc(
         prev.map((c) =>
@@ -197,7 +185,6 @@ export default function App() {
         await ai.updateConversation(id, { title });
       }
     } catch (e) {
-      // Rollback title if backend fails
       setConversations((prev) =>
         sortByUpdatedAtDesc(prev.map((c) => (c.id === id ? { ...c, title: prevTitle } : c)))
       );
@@ -220,7 +207,6 @@ export default function App() {
       const resp = await ai.chat({ threadId: activeId, message: text });
       setMessages((m) => [...m, { role: "assistant", content: resp.content, createdAt: resp.createdAt }]);
 
-      // bump updatedAt and re-sort
       setConversations((prev) => {
         const copy = [...prev];
         const idx = copy.findIndex((c) => c.id === activeId);
@@ -228,7 +214,6 @@ export default function App() {
         return sortByUpdatedAtDesc(copy);
       });
 
-      // Auto-title after first turn if still default and not manually titled
       const convo = conversations.find((c) => c.id === activeId);
       if (isFirstMessageOfThread && convo && (!convo.title || convo.title === "New Chat") && !convo.manuallyTitled) {
         await regenerateTitle(activeId);
@@ -254,95 +239,96 @@ export default function App() {
     }
   };
 
-  /* ─────────────── Render ─────────────── */
-
   return (
-    // Light theme, full-height layout
-    <div className="h-[100dvh] min-h-screen flex bg-white text-gray-900">
-      {/* Left Sidebar (light) */}
-      <Sidebar
-        conversations={conversations}
-        activeId={activeId}
-        onNewChat={startNewChat}
-        onSelect={selectConversation}
-        onDelete={onDelete}                   // opens confirm modal
-        onRename={renameConversation}         // supports (id, title?)
-        onRegenerateTitle={regenerateTitle}
-      />
+    // Full-bleed: fixed to viewport under navbar (assume navbar = 64px tall)
+    <div className="fixed inset-x-0 bottom-0 top-[64px] bg-white">
+      <div className="h-full flex bg-white text-gray-900">
+        {/* Sidebar */}
+        <Sidebar
+          conversations={conversations}
+          activeId={activeId}
+          onNewChat={startNewChat}
+          onSelect={selectConversation}
+          onDelete={onDelete}
+          onRename={renameConversation}
+          onRegenerateTitle={regenerateTitle}
+        />
 
-      {/* Main Chat */}
-      <div className="flex-1 flex flex-col min-h-0">
-        {/* Slim top header (right-aligned, like ChatGPT) */}
-        <header className="h-12 px-4 flex items-center justify-end text-xs text-gray-500">
-          <div className="opacity-75">Role: {role}</div>
-        </header>
-
-        {/* Chat column: centered and constrained like ChatGPT */}
+        {/* Main Chat */}
         <div className="flex-1 flex flex-col min-h-0">
-          {/* Scrollable messages */}
-          <div ref={listRef} className="flex-1 overflow-auto">
-            <div className="mx-auto w-full max-w-3xl px-4 sm:px-6 md:px-8 py-4 space-y-3">
-              {messages.length === 0 && !loading && (
-                <div className="text-gray-500 text-sm pt-10">
-                  Start a conversation. Example: <em>“Explain the Pythagorean theorem.”</em>
-                </div>
-              )}
+          <header className="h-12 px-4 flex items-center justify-end text-xs text-gray-500">
+            <div className="opacity-75">Role: {role}</div>
+          </header>
 
-              {messages.map((m, idx) => (
-                <div key={idx} className={"flex " + (m.role === "user" ? "justify-end" : "justify-start")}>
-                  <div
-                    className={
-                      "max-w-[85%] sm:max-w-[70%] px-4 py-2 rounded-2xl text-sm leading-6 " +
-                      (m.role === "user"
-                        ? "bg-indigo-600 text-white"
-                        : "bg-gray-100 text-gray-900")
-                    }
-                  >
-                    {m.content}
+          <div className="flex-1 flex flex-col min-h-0">
+            {/* Messages */}
+            <div ref={listRef} className="flex-1 overflow-auto">
+              <div className="w-full px-6 md:px-10 lg:px-16 py-4 space-y-3">
+                {messages.length === 0 && !loading && (
+                  <div className="text-gray-500 text-sm pt-10">
+                    Start a conversation. Example: <em>“Explain the Pythagorean theorem.”</em>
                   </div>
-                </div>
-              ))}
+                )}
 
-              {loading && (
-                <div className="flex justify-start">
-                  <div className="px-3 py-2 rounded-2xl bg-gray-100 text-gray-900">
-                    <Spinner />
+                {messages.map((m, idx) => (
+                  <div key={idx} className={"flex " + (m.role === "user" ? "justify-end" : "justify-start")}>
+                    <div
+                      className={
+                        "max-w-[90%] sm:max-w-[80%] lg:max-w-[70%] px-4 py-2 rounded-2xl text-sm leading-6 " +
+                        (m.role === "user"
+                          ? "bg-indigo-600 text-white"
+                          : "bg-gray-100 text-gray-900")
+                      }
+                    >
+                      {m.content}
+                    </div>
                   </div>
-                </div>
-              )}
+                ))}
+
+                {loading && (
+                  <div className="flex justify-start">
+                    <div className="px-3 py-2 rounded-2xl bg-gray-100 text-gray-900">
+                      <Spinner />
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
-          </div>
 
-          {/* Sticky bottom composer (centered) */}
-          <div
-            ref={composerRef}
-            className="sticky bottom-0 px-4 sm:px-6 md:px-8 pb-[max(16px,env(safe-area-inset-bottom))] pt-3 bg-gradient-to-t from-white via-white/80 to-transparent"
-          >
-            <div className="mx-auto w-full max-w-3xl">
-              <div className="flex items-end gap-2 rounded-full ring-1 ring-gray-300 bg-white shadow-sm focus-within:ring-2 focus-within:ring-indigo-500">
-                <textarea
-                  value={input}
-                  onChange={(e) => setInput(e.target.value)}
-                  onKeyDown={onKeyDown}
-                  onFocus={ensureComposerVisible}
-                  placeholder="Ask anything"
-                  className="flex-1 resize-none outline-none bg-transparent border-0 px-4 py-3 min-h-[44px] max-h-40 text-gray-900 placeholder:text-gray-400"
-                  rows={1}
-                />
-                <button
-                  onClick={send}
-                  disabled={loading || !input.trim()}
-                  className="m-1 mr-2 h-10 w-10 rounded-full flex items-center justify-center bg-gray-100 hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed"
-                  title="Send"
-                >
-                  {loading ? (
-                    <Spinner />
-                  ) : (
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" className="h-5 w-5">
-                      <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z" />
-                    </svg>
-                  )}
-                </button>
+            {/* Composer */}
+            <div
+              ref={composerRef}
+              className="sticky bottom-0 px-6 md:px-10 lg:px-16 pb-[max(16px,env(safe-area-inset-bottom))] pt-3 bg-gradient-to-t from-white via-white/80 to-transparent"
+            >
+              <div className="w-full">
+                <div className="flex items-end gap-2 rounded-full ring-1 ring-gray-300 bg-white shadow-sm focus-within:ring-2 focus-within:ring-indigo-500">
+                  <textarea
+                    value={input}
+                    onChange={(e) => setInput(e.target.value)}
+                    onKeyDown={onKeyDown}
+                    onFocus={ensureComposerVisible}
+                    placeholder="Ask anything"
+                    className="flex-1 resize-none outline-none bg-transparent border-0 px-4 py-3 min-h-[44px] max-h-40 text-gray-900 placeholder:text-gray-400"
+                    rows={1}
+                  />
+                  <button
+                    onClick={send}
+                    disabled={loading || !input.trim()}
+                    className="m-1 mr-2 h-10 w-10 rounded-full flex items-center justify-center bg-gray-100 hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                    title="Send"
+                  >
+                    {loading ? (
+                      <Spinner />
+                    ) : (
+                      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" className="h-5 w-5">
+                        <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z" />
+                      </svg>
+                    )}
+                  </button>
+                </div>
+                <div className="mt-2 text-[11px] text-gray-400 text-center">
+                  {APP_NAME} can make mistakes — verify important info.
+                </div>
               </div>
             </div>
           </div>
@@ -359,7 +345,7 @@ export default function App() {
         onCancel={() => setConfirmDelete({ open: false, id: null })}
       />
 
-      {/* Toast (Undo) */}
+      {/* Toast */}
       <Toast
         open={toast.open}
         message={toast.message}
@@ -371,8 +357,7 @@ export default function App() {
   );
 }
 
-/* ─────────────── Small UI helpers ─────────────── */
-
+/* ConfirmModal + Toast helpers (same as before) */
 function ConfirmModal({ open, title, message, confirmText = "Confirm", cancelText = "Cancel", onConfirm, onCancel }) {
   if (!open) return null;
   return (
