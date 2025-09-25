@@ -1,14 +1,58 @@
 // ChatApp.jsx
 import React, { useEffect, useRef, useState } from "react";
 import "./ChatApp.css";
-import { AIClient } from "./lib/ai/client.js";
-import { APP_NAME } from "./lib/config.js";
 import Sidebar from "./Sidebar.jsx";
 import Spinner from "./Spinner.jsx";
 
+/* ─────────────── Inline Mock AIClient ─────────────── */
+class AIClient {
+  async listConversations() { return []; }
+
+  async createConversation(title) {
+    return { id: Date.now().toString(), title, updatedAt: new Date().toISOString() };
+  }
+
+  async getMessages() { return []; }
+
+  async chat({ threadId, message }) {
+    const res = await fetch("https://api.openai.com/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${import.meta.env.VITE_OPENAI_API_KEY}`, // ⚠️ exposed
+      },
+      body: JSON.stringify({
+        model: "gpt-4o-mini",
+        messages: [
+          { role: "system", content: "You are a helpful assistant." },
+          { role: "user", content: message },
+        ],
+      }),
+    });
+
+    if (!res.ok) throw new Error(`API error ${res.status}`);
+    const data = await res.json();
+
+    return {
+      role: "assistant",
+      content: data.choices?.[0]?.message?.content || "(no reply)",
+      createdAt: new Date().toISOString(),
+    };
+  }
+
+  async deleteConversation() {}
+  async restoreConversation() {}
+}
+
 const ai = new AIClient();
+
+/* ─────────────── App Name from .env ─────────────── */
+const APP_NAME = import.meta.env.VITE_APP_NAME || "Chatbot";
+
 const sortByUpdatedAtDesc = (arr) =>
-  [...arr].sort((a, b) => new Date(b?.updatedAt || 0) - new Date(a?.updatedAt || 0));
+  [...arr].sort(
+    (a, b) => new Date(b?.updatedAt || 0) - new Date(a?.updatedAt || 0)
+  );
 
 export default function App() {
   const role = localStorage.getItem("role") || "student";
@@ -23,7 +67,12 @@ export default function App() {
   const composerRef = useRef(null);
 
   const [confirmDelete, setConfirmDelete] = useState({ open: false, id: null });
-  const [toast, setToast] = useState({ open: false, message: "", actionText: "", onAction: null });
+  const [toast, setToast] = useState({
+    open: false,
+    message: "",
+    actionText: "",
+    onAction: null,
+  });
   const lastDeletedRef = useRef(null);
 
   /* ─────────────── Load conversations ─────────────── */
@@ -41,22 +90,31 @@ export default function App() {
     })();
   }, []);
 
-  /* ─────────────── Load messages ─────────────── */
   useEffect(() => {
     (async () => {
       if (!activeId) return;
       const msgs = await ai.getMessages(activeId);
       setMessages(msgs);
       setTimeout(
-        () => listRef.current?.scrollTo({ top: listRef.current.scrollHeight, behavior: "smooth" }),
+        () =>
+          listRef.current?.scrollTo({
+            top: listRef.current.scrollHeight,
+            behavior: "smooth",
+          }),
         50
       );
     })();
   }, [activeId]);
 
   const ensureComposerVisible = () => {
-    listRef.current?.scrollTo({ top: listRef.current.scrollHeight, behavior: "smooth" });
-    composerRef.current?.scrollIntoView({ block: "nearest", behavior: "smooth" });
+    listRef.current?.scrollTo({
+      top: listRef.current.scrollHeight,
+      behavior: "smooth",
+    });
+    composerRef.current?.scrollIntoView({
+      block: "nearest",
+      behavior: "smooth",
+    });
   };
 
   const startNewChat = async () => {
@@ -110,15 +168,11 @@ export default function App() {
     if (!deleted) return;
 
     try {
-      if (ai.restoreConversation) {
-        const restored = await ai.restoreConversation(deleted.id);
-        setConversations((prev) => sortByUpdatedAtDesc([restored, ...prev]));
-        setActiveId(restored.id);
-      } else {
-        const recreated = await ai.createConversation(deleted.title || "New Chat");
-        setConversations((prev) => sortByUpdatedAtDesc([recreated, ...prev]));
-        setActiveId(recreated.id);
-      }
+      const recreated = await ai.createConversation(deleted.title || "New Chat");
+      setConversations((prev) =>
+        sortByUpdatedAtDesc([recreated, ...prev])
+      );
+      setActiveId(recreated.id);
     } catch (e) {
       console.error("Undo failed:", e);
     }
@@ -130,103 +184,50 @@ export default function App() {
     setInput("");
   };
 
-  const makeFallbackTitle = (text) => {
-    const clean = (text || "New Chat").replace(/\s+/g, " ").trim();
-    const max = 42;
-    return clean.length > max ? clean.slice(0, max - 1) + "…" : clean;
-  };
-
-  const regenerateTitle = async (id) => {
-    try {
-      const msgs = id === activeId ? messages : await ai.getMessages(id);
-      const firstUser = msgs.find((m) => m.role === "user");
-      let title = null;
-
-      if (ai.suggestTitle) {
-        const resp = await ai.suggestTitle({ threadId: id, seed: firstUser?.content || "" });
-        title = resp?.title || null;
-      }
-      if (!title) title = makeFallbackTitle(firstUser?.content || "New Chat");
-
-      await renameConversation(id, title, { manual: false });
-    } catch (e) {
-      console.error("Regenerate title failed:", e);
-    }
-  };
-
-  const renameConversation = async (id, maybeTitle, opts = { manual: true }) => {
-    let title = maybeTitle;
-    const current = conversations.find((c) => c.id === id);
-    const prevTitle = current?.title || "New Chat";
-
-    if (typeof title !== "string") {
-      const inputName = window.prompt("Rename conversation:", prevTitle);
-      if (inputName == null) return;
-      title = inputName.trim() || "New Chat";
-      opts = { manual: true };
-    }
-
-    setConversations((prev) =>
-      sortByUpdatedAtDesc(
-        prev.map((c) =>
-          c.id === id
-            ? { ...c, title, manuallyTitled: !!opts.manual, updatedAt: new Date().toISOString() }
-            : c
-        )
-      )
-    );
-
-    try {
-      if (ai.renameConversation) {
-        await ai.renameConversation(id, title);
-      } else if (ai.updateConversationTitle) {
-        await ai.updateConversationTitle(id, title);
-      } else if (ai.updateConversation) {
-        await ai.updateConversation(id, { title });
-      }
-    } catch (e) {
-      setConversations((prev) =>
-        sortByUpdatedAtDesc(prev.map((c) => (c.id === id ? { ...c, title: prevTitle } : c)))
-      );
-      console.error("Rename failed:", e);
-    }
-  };
-
   const send = async () => {
     const text = input.trim();
     if (!text || !activeId) return;
 
-    const isFirstMessageOfThread = messages.length === 0;
-
     setInput("");
-    const optimistic = { role: "user", content: text, createdAt: new Date().toISOString() };
+    const optimistic = {
+      role: "user",
+      content: text,
+      createdAt: new Date().toISOString(),
+    };
     setMessages((m) => [...m, optimistic]);
     setLoading(true);
 
     try {
       const resp = await ai.chat({ threadId: activeId, message: text });
-      setMessages((m) => [...m, { role: "assistant", content: resp.content, createdAt: resp.createdAt }]);
+      setMessages((m) => [
+        ...m,
+        { role: "assistant", content: resp.content, createdAt: resp.createdAt },
+      ]);
 
       setConversations((prev) => {
         const copy = [...prev];
         const idx = copy.findIndex((c) => c.id === activeId);
-        if (idx >= 0) copy[idx] = { ...copy[idx], updatedAt: new Date().toISOString() };
+        if (idx >= 0)
+          copy[idx] = { ...copy[idx], updatedAt: new Date().toISOString() };
         return sortByUpdatedAtDesc(copy);
       });
-
-      const convo = conversations.find((c) => c.id === activeId);
-      if (isFirstMessageOfThread && convo && (!convo.title || convo.title === "New Chat") && !convo.manuallyTitled) {
-        await regenerateTitle(activeId);
-      }
     } catch (e) {
       setMessages((m) => [
         ...m,
-        { role: "assistant", content: `⚠️ ${e.message}`, createdAt: new Date().toISOString() },
+        {
+          role: "assistant",
+          content: `⚠️ ${e.message}`,
+          createdAt: new Date().toISOString(),
+        },
       ]);
     } finally {
       setLoading(false);
       setTimeout(
-        () => listRef.current?.scrollTo({ top: listRef.current.scrollHeight, behavior: "smooth" }),
+        () =>
+          listRef.current?.scrollTo({
+            top: listRef.current.scrollHeight,
+            behavior: "smooth",
+          }),
         50
       );
     }
@@ -240,7 +241,6 @@ export default function App() {
   };
 
   return (
-    // Full-bleed: fixed to viewport under navbar (assume navbar = 64px tall)
     <div className="fixed inset-x-0 bottom-0 top-[64px] bg-white">
       <div className="h-full flex bg-white text-gray-900">
         {/* Sidebar */}
@@ -250,8 +250,8 @@ export default function App() {
           onNewChat={startNewChat}
           onSelect={selectConversation}
           onDelete={onDelete}
-          onRename={renameConversation}
-          onRegenerateTitle={regenerateTitle}
+          onRename={() => {}}
+          onRegenerateTitle={() => {}}
         />
 
         {/* Main Chat */}
@@ -266,12 +266,19 @@ export default function App() {
               <div className="w-full px-6 md:px-10 lg:px-16 py-4 space-y-3">
                 {messages.length === 0 && !loading && (
                   <div className="text-gray-500 text-sm pt-10">
-                    Start a conversation. Example: <em>“Explain the Pythagorean theorem.”</em>
+                    Start a conversation. Example:{" "}
+                    <em>“Explain the Pythagorean theorem.”</em>
                   </div>
                 )}
 
                 {messages.map((m, idx) => (
-                  <div key={idx} className={"flex " + (m.role === "user" ? "justify-end" : "justify-start")}>
+                  <div
+                    key={idx}
+                    className={
+                      "flex " +
+                      (m.role === "user" ? "justify-end" : "justify-start")
+                    }
+                  >
                     <div
                       className={
                         "max-w-[90%] sm:max-w-[80%] lg:max-w-[70%] px-4 py-2 rounded-2xl text-sm leading-6 " +
@@ -320,7 +327,11 @@ export default function App() {
                     {loading ? (
                       <Spinner />
                     ) : (
-                      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" className="h-5 w-5">
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        viewBox="0 0 24 24"
+                        className="h-5 w-5"
+                      >
                         <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z" />
                       </svg>
                     )}
@@ -357,7 +368,7 @@ export default function App() {
   );
 }
 
-/* ConfirmModal + Toast helpers (same as before) */
+/* ─────────────── UI Helpers ─────────────── */
 function ConfirmModal({ open, title, message, confirmText = "Confirm", cancelText = "Cancel", onConfirm, onCancel }) {
   if (!open) return null;
   return (
