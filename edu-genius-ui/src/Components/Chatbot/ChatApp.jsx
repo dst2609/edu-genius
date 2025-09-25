@@ -1,10 +1,10 @@
-// App.jsx
+// ChatApp.jsx
 import React, { useEffect, useRef, useState } from "react";
 import "./ChatApp.css";
-import {AIClient } from "./lib/ai/client.js";
+import { AIClient } from "./lib/ai/client.js";
 import { APP_NAME } from "./lib/config.js";
-import Sidebar from "./Sidebar.jsx";   // adjust if needed
-import Spinner from "./Spinner.jsx";   // adjust if needed
+import Sidebar from "./Sidebar.jsx";
+import Spinner from "./Spinner.jsx";
 
 const ai = new AIClient();
 
@@ -80,7 +80,9 @@ export default function App() {
 
   const trulyDeleteConversation = async (id) => {
     if (ai.deleteConversation) {
-      try { await ai.deleteConversation(id); } catch {}
+      try {
+        await ai.deleteConversation(id);
+      } catch {}
     }
     const nextList = conversations.filter((c) => c.id !== id);
     setConversations(sortByUpdatedAtDesc(nextList));
@@ -255,9 +257,9 @@ export default function App() {
   /* ─────────────── Render ─────────────── */
 
   return (
-    // Dynamic viewport height so mobile keyboards don’t cover the composer
-    <div className="h-[100dvh] flex bg-neutral-50 overflow-y-auto">
-      {/* Left Sidebar */}
+    // Light theme, full-height layout
+    <div className="h-[100dvh] min-h-screen flex bg-white text-gray-900">
+      {/* Left Sidebar (light) */}
       <Sidebar
         conversations={conversations}
         activeId={activeId}
@@ -270,29 +272,30 @@ export default function App() {
 
       {/* Main Chat */}
       <div className="flex-1 flex flex-col min-h-0">
-        <header className="px-4 py-3 border-b bg-white flex items-center justify-between">
-          <h1 className="font-semibold">{APP_NAME}</h1>
-          <div className="text-sm opacity-70">Role: {role}</div>
+        {/* Slim top header (right-aligned, like ChatGPT) */}
+        <header className="h-12 px-4 flex items-center justify-end text-xs text-gray-500">
+          <div className="opacity-75">Role: {role}</div>
         </header>
 
-        {/* Outer padding for the chat card */}
-        <div className="p-4 pb-6 flex-1 flex flex-col min-h-0">
-          {/* Chat card (messages + composer inside) */}
-          <div className="flex-1 flex flex-col min-h-0 border rounded-xl bg-white overflow-hidden">
-            {/* Scrollable messages */}
-            <div ref={listRef} className="flex-1 overflow-auto p-4 space-y-3">
+        {/* Chat column: centered and constrained like ChatGPT */}
+        <div className="flex-1 flex flex-col min-h-0">
+          {/* Scrollable messages */}
+          <div ref={listRef} className="flex-1 overflow-auto">
+            <div className="mx-auto w-full max-w-3xl px-4 sm:px-6 md:px-8 py-4 space-y-3">
               {messages.length === 0 && !loading && (
-                <div className="text-neutral-500 text-sm">
+                <div className="text-gray-500 text-sm pt-10">
                   Start a conversation. Example: <em>“Explain the Pythagorean theorem.”</em>
                 </div>
               )}
 
               {messages.map((m, idx) => (
-                <div key={idx} className={m.role === "user" ? "text-right" : "text-left"}>
+                <div key={idx} className={"flex " + (m.role === "user" ? "justify-end" : "justify-start")}>
                   <div
                     className={
-                      "inline-block px-3 py-2 rounded " +
-                      (m.role === "user" ? "bg-indigo-600 text-white" : "bg-neutral-100")
+                      "max-w-[85%] sm:max-w-[70%] px-4 py-2 rounded-2xl text-sm leading-6 " +
+                      (m.role === "user"
+                        ? "bg-indigo-600 text-white"
+                        : "bg-gray-100 text-gray-900")
                     }
                   >
                     {m.content}
@@ -301,33 +304,35 @@ export default function App() {
               ))}
 
               {loading && (
-                <div className="text-left">
-                  <div className="inline-block px-3 py-2 rounded bg-neutral-100">
+                <div className="flex justify-start">
+                  <div className="px-3 py-2 rounded-2xl bg-gray-100 text-gray-900">
                     <Spinner />
                   </div>
                 </div>
               )}
             </div>
+          </div>
 
-            {/* Composer (inside card, rounded input group, button inside) */}
-            <div
-              ref={composerRef}
-              className="border-t p-3 pb-[max(12px,env(safe-area-inset-bottom))] bg-white"
-            >
-              <div className="flex items-end gap-2 rounded-xl ring-1 ring-neutral-200 bg-white focus-within:ring-2 focus-within:ring-indigo-500">
+          {/* Sticky bottom composer (centered) */}
+          <div
+            ref={composerRef}
+            className="sticky bottom-0 px-4 sm:px-6 md:px-8 pb-[max(16px,env(safe-area-inset-bottom))] pt-3 bg-gradient-to-t from-white via-white/80 to-transparent"
+          >
+            <div className="mx-auto w-full max-w-3xl">
+              <div className="flex items-end gap-2 rounded-full ring-1 ring-gray-300 bg-white shadow-sm focus-within:ring-2 focus-within:ring-indigo-500">
                 <textarea
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
                   onKeyDown={onKeyDown}
                   onFocus={ensureComposerVisible}
-                  placeholder="Type your message..."
-                  className="flex-1 resize-none outline-none bg-transparent border-0 p-3 min-h-[44px] max-h-40 leading-6"
+                  placeholder="Ask anything"
+                  className="flex-1 resize-none outline-none bg-transparent border-0 px-4 py-3 min-h-[44px] max-h-40 text-gray-900 placeholder:text-gray-400"
                   rows={1}
                 />
                 <button
                   onClick={send}
                   disabled={loading || !input.trim()}
-                  className="m-1 h-9 w-9 rounded-lg flex items-center justify-center bg-neutral-100 hover:bg-neutral-200 disabled:opacity-60 disabled:cursor-not-allowed"
+                  className="m-1 mr-2 h-10 w-10 rounded-full flex items-center justify-center bg-gray-100 hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed"
                   title="Send"
                 >
                   {loading ? (
