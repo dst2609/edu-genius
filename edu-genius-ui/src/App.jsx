@@ -17,20 +17,6 @@ const NavigationButtons = () => {
 
   return (
     <Box sx={{ textAlign: "center", mt: 4 }}>
-      {/* <Button
-        variant="contained"
-        sx={{ m: 1 }}
-        onClick={() => navigate("/login")}
-      >
-        Login
-      </Button>
-      <Button
-        variant="contained"
-        sx={{ m: 1 }}
-        onClick={() => navigate("/register")}
-      >
-        Register
-      </Button> */}
       <Button
         variant="contained"
         sx={{ m: 1 }}
