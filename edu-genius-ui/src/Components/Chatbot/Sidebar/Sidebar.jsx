@@ -1,4 +1,4 @@
-import ConversationItem from "./ConversationItem.jsx";
+import ConversationItem from "../ConversationItem/ConversationItem.jsx";
 export default function Sidebar({
   conversations,
   activeId,
@@ -25,7 +25,8 @@ export default function Sidebar({
         {conversations.length === 0 ? (
           <div className="text-xs text-neutral-500 p-2">
             No conversations yet.
-            <br />Click <strong>+</strong> to start.
+            <br />
+            Click <strong>+</strong> to start.
           </div>
         ) : (
           conversations.map((c) => (
@@ -35,8 +36,8 @@ export default function Sidebar({
               active={c.id === activeId}
               onClick={() => onSelect(c.id)}
               onDelete={() => onDelete(c.id)}
-              onRename={(title) => onRename(c.id, title)}         // pass title up
-              onRegenerateTitle={() => onRegenerateTitle(c.id)}   // menu action
+              onRename={(title) => onRename(c.id, title)} // pass title up
+              onRegenerateTitle={() => onRegenerateTitle(c.id)} // menu action
             />
           ))
         )}

@@ -1,25 +1,33 @@
 // ChatApp.jsx
 import React, { useEffect, useRef, useState } from "react";
 import "./ChatApp.css";
-import Sidebar from "./Sidebar.jsx";
-import Spinner from "./Spinner.jsx";
+import Sidebar from "../Sidebar/Sidebar.jsx";
+import Spinner from "../Spinner/Spinner.jsx";
 
 /* ─────────────── Inline Mock AIClient ─────────────── */
 class AIClient {
-  async listConversations() { return []; }
-
-  async createConversation(title) {
-    return { id: Date.now().toString(), title, updatedAt: new Date().toISOString() };
+  async listConversations() {
+    return [];
   }
 
-  async getMessages() { return []; }
+  async createConversation(title) {
+    return {
+      id: Date.now().toString(),
+      title,
+      updatedAt: new Date().toISOString(),
+    };
+  }
+
+  async getMessages() {
+    return [];
+  }
 
   async chat({ threadId, message }) {
     const res = await fetch("https://api.openai.com/v1/chat/completions", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "Authorization": `Bearer ${import.meta.env.VITE_OPENAI_API_KEY}`, // ⚠️ exposed
+        Authorization: `Bearer ${import.meta.env.VITE_OPENAI_API_KEY}`, // ⚠️ exposed
       },
       body: JSON.stringify({
         model: "gpt-4o-mini",
@@ -168,10 +176,10 @@ export default function App() {
     if (!deleted) return;
 
     try {
-      const recreated = await ai.createConversation(deleted.title || "New Chat");
-      setConversations((prev) =>
-        sortByUpdatedAtDesc([recreated, ...prev])
+      const recreated = await ai.createConversation(
+        deleted.title || "New Chat"
       );
+      setConversations((prev) => sortByUpdatedAtDesc([recreated, ...prev]));
       setActiveId(recreated.id);
     } catch (e) {
       console.error("Undo failed:", e);
@@ -369,7 +377,15 @@ export default function App() {
 }
 
 /* ─────────────── UI Helpers ─────────────── */
-function ConfirmModal({ open, title, message, confirmText = "Confirm", cancelText = "Cancel", onConfirm, onCancel }) {
+function ConfirmModal({
+  open,
+  title,
+  message,
+  confirmText = "Confirm",
+  cancelText = "Cancel",
+  onConfirm,
+  onCancel,
+}) {
   if (!open) return null;
   return (
     <div className="fixed inset-0 z-40 flex items-center justify-center">
@@ -378,10 +394,16 @@ function ConfirmModal({ open, title, message, confirmText = "Confirm", cancelTex
         <div className="font-semibold mb-1">{title}</div>
         <div className="text-sm text-neutral-600 mb-4">{message}</div>
         <div className="flex justify-end gap-2">
-          <button onClick={onCancel} className="px-3 py-1.5 rounded bg-neutral-200">
+          <button
+            onClick={onCancel}
+            className="px-3 py-1.5 rounded bg-neutral-200"
+          >
             {cancelText}
           </button>
-          <button onClick={onConfirm} className="px-3 py-1.5 rounded bg-red-600 text-white">
+          <button
+            onClick={onConfirm}
+            className="px-3 py-1.5 rounded bg-red-600 text-white"
+          >
             {confirmText}
           </button>
         </div>
@@ -390,7 +412,14 @@ function ConfirmModal({ open, title, message, confirmText = "Confirm", cancelTex
   );
 }
 
-function Toast({ open, message, actionText, onAction, onClose, duration = 4500 }) {
+function Toast({
+  open,
+  message,
+  actionText,
+  onAction,
+  onClose,
+  duration = 4500,
+}) {
   const timerRef = useRef();
   useEffect(() => {
     if (!open) return;
