@@ -1,0 +1,31 @@
+/* ChatApp.css — Full-bleed layout */
+/* Ensure root and body stretch full viewport */
+html, body, #root {
+  height: 100%;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  background: #ffffff; /* white theme */
+  color: #111827;      /* gray-900 text */
+}
+
+/* Remove any max-width / centering from Vite/Bootstrap containers */
+#root, main, .container, .app-wrapper {
+  max-width: none !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  width: 100% !important;
+}
+
+/* Let the chatbot flex to full height */
+.chatapp-fullscreen {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  width: 100%;
+}
+
+/* Optional: smoother scroll */
+html {
+  scroll-behavior: smooth;
+}
