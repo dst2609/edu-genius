@@ -1,58 +1,106 @@
-// ChatApp.jsx
 import React, { useEffect, useRef, useState } from "react";
 import "./ChatApp.css";
 import Sidebar from "../Sidebar/Sidebar.jsx";
 import Spinner from "../Spinner/Spinner.jsx";
 
-/* ─────────────── Inline Mock AIClient ─────────────── */
-class AIClient {
+const API_BASE_URL = (
+  import.meta.env.VITE_API_BASE_URL || "http://localhost:3000"
+).replace(/\/+$/, "");
+
+class ChatApiClient {
+  constructor(baseUrl) {
+    this.baseUrl = baseUrl;
+  }
+
+  buildUrl(path) {
+    const normalizedBase = this.baseUrl.replace(/\/+$/, "");
+    return path.startsWith("/")
+      ? `${normalizedBase}${path}`
+      : `${normalizedBase}/${path}`;
+  }
+
+  async request(path, { method = "GET", body } = {}) {
+    const token = localStorage.getItem("token");
+    if (!token) {
+      throw new Error("You must be logged in to chat.");
+    }
+
+    const res = await fetch(this.buildUrl(path), {
+      method,
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: body ? JSON.stringify(body) : undefined,
+    });
+
+    if (res.status === 401) {
+      throw new Error("Your session has expired. Please log in again.");
+    }
+
+    if (!res.ok) {
+      let message = `Request failed with status ${res.status}`;
+      try {
+        const errorData = await res.json();
+        if (typeof errorData === "string" && errorData.trim()) {
+          message = errorData;
+        } else if (errorData?.message) {
+          message = errorData.message;
+        } else if (errorData?.error) {
+          message = errorData.error;
+        }
+      } catch {
+        const text = await res.text();
+        if (text) {
+          message = text;
+        }
+      }
+      throw new Error(message);
+    }
+
+    if (res.status === 204) {
+      return null;
+    }
+
+    return res.json();
+  }
+
   async listConversations() {
-    return [];
+    const data = await this.request("/chat/conversations");
+    return data?.conversations ?? [];
   }
 
   async createConversation(title) {
-    return {
-      id: Date.now().toString(),
-      title,
-      updatedAt: new Date().toISOString(),
-    };
-  }
-
-  async getMessages() {
-    return [];
-  }
-
-  async chat({ threadId, message }) {
-    const res = await fetch("https://api.openai.com/v1/chat/completions", {
+    return this.request("/chat/conversations", {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${import.meta.env.VITE_OPENAI_API_KEY}`, // ⚠️ exposed
-      },
-      body: JSON.stringify({
-        model: "gpt-4o-mini",
-        messages: [
-          { role: "system", content: "You are a helpful assistant." },
-          { role: "user", content: message },
-        ],
-      }),
+      body: { title },
     });
-
-    if (!res.ok) throw new Error(`API error ${res.status}`);
-    const data = await res.json();
-
-    return {
-      role: "assistant",
-      content: data.choices?.[0]?.message?.content || "(no reply)",
-      createdAt: new Date().toISOString(),
-    };
   }
 
-  async deleteConversation() {}
-  async restoreConversation() {}
+  async getMessages(conversationId) {
+    const data = await this.request(`/chat/conversations/${conversationId}`);
+    return data?.messages ?? [];
+  }
+
+  async chat({ threadId, message, title }) {
+    return this.request("/chat", {
+      method: "POST",
+      body: {
+        conversationId: threadId,
+        prompt: message,
+        title,
+      },
+    });
+  }
+
+  async deleteConversation(conversationId) {
+    await this.request(`/chat/conversations/${conversationId}`, {
+      method: "DELETE",
+    });
+  }
 }
 
-const ai = new AIClient();
+const chatApi = new ChatApiClient(API_BASE_URL);
 
 /* ─────────────── App Name from .env ─────────────── */
 const APP_NAME = import.meta.env.VITE_APP_NAME || "Chatbot";
@@ -63,6 +111,7 @@ const sortByUpdatedAtDesc = (arr) =>
   );
 
 export default function App() {
+  const token = localStorage.getItem("token");
   const role = localStorage.getItem("role") || "student";
 
   const [conversations, setConversations] = useState([]);
@@ -70,6 +119,8 @@ export default function App() {
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
+  const [historyLoading, setHistoryLoading] = useState(false);
+  const [initializing, setInitializing] = useState(true);
 
   const listRef = useRef(null);
   const composerRef = useRef(null);
@@ -83,36 +134,97 @@ export default function App() {
   });
   const lastDeletedRef = useRef(null);
 
-  /* ─────────────── Load conversations ─────────────── */
   useEffect(() => {
-    (async () => {
-      const list = await ai.listConversations();
-      const sorted = sortByUpdatedAtDesc(list);
-      setConversations(sorted);
-      if (sorted.length > 0) setActiveId(sorted[0].id);
-      else {
-        const c = await ai.createConversation("New Chat");
-        setConversations([c]);
-        setActiveId(c.id);
+    let cancelled = false;
+
+    const bootstrap = async () => {
+      if (!token) {
+        setConversations([]);
+        setMessages([]);
+        setActiveId(null);
+        setInitializing(false);
+        return;
       }
-    })();
-  }, []);
+
+      setInitializing(true);
+
+      try {
+        const list = await chatApi.listConversations();
+        if (cancelled) return;
+
+        if (list.length > 0) {
+          const sorted = sortByUpdatedAtDesc(list);
+          setConversations(sorted);
+          setActiveId(sorted[0].id);
+        } else {
+          const conversation = await chatApi.createConversation("New Chat");
+          if (cancelled) return;
+          setConversations([conversation]);
+          setActiveId(conversation.id);
+        }
+      } catch (e) {
+        if (cancelled) return;
+        console.error(e);
+        setToast({
+          open: true,
+          message: e.message || "Unable to load conversations.",
+          actionText: "",
+          onAction: null,
+        });
+      } finally {
+        if (!cancelled) {
+          setInitializing(false);
+        }
+      }
+    };
+
+    bootstrap();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [token]);
 
   useEffect(() => {
+    if (!token || !activeId) {
+      setHistoryLoading(false);
+      return;
+    }
+
+    let cancelled = false;
+    setHistoryLoading(true);
+    setMessages([]);
+
     (async () => {
-      if (!activeId) return;
-      const msgs = await ai.getMessages(activeId);
-      setMessages(msgs);
-      setTimeout(
-        () =>
+      try {
+        const msgs = await chatApi.getMessages(activeId);
+        if (cancelled) return;
+        setMessages(msgs);
+        setTimeout(() =>
           listRef.current?.scrollTo({
             top: listRef.current.scrollHeight,
             behavior: "smooth",
-          }),
-        50
-      );
+          }), 50);
+      } catch (e) {
+        if (cancelled) return;
+        console.error(e);
+        setToast({
+          open: true,
+          message: e.message || "Unable to load chat history.",
+          actionText: "",
+          onAction: null,
+        });
+      } finally {
+        if (!cancelled) {
+          setHistoryLoading(false);
+        }
+      }
     })();
-  }, [activeId]);
+
+    return () => {
+      cancelled = true;
+    };
+  }, [activeId, token]);
 
   const ensureComposerVisible = () => {
     listRef.current?.scrollTo({
@@ -126,49 +238,72 @@ export default function App() {
   };
 
   const startNewChat = async () => {
-    const c = await ai.createConversation("New Chat");
-    setConversations((prev) => [c, ...prev]);
-    setActiveId(c.id);
-    setMessages([]);
-    setInput("");
+    try {
+      const conversation = await chatApi.createConversation("New Chat");
+      setConversations((prev) =>
+        sortByUpdatedAtDesc([
+          conversation,
+          ...prev.filter((c) => c.id !== conversation.id),
+        ])
+      );
+      setActiveId(conversation.id);
+      setMessages([]);
+      setInput("");
+    } catch (e) {
+      console.error(e);
+      setToast({
+        open: true,
+        message: e.message || "Unable to create a new chat.",
+        actionText: "",
+        onAction: null,
+      });
+    }
   };
 
   const onDelete = (id) => setConfirmDelete({ open: true, id });
 
-  const trulyDeleteConversation = async (id) => {
-    if (ai.deleteConversation) {
-      try {
-        await ai.deleteConversation(id);
-      } catch {}
-    }
-    const nextList = conversations.filter((c) => c.id !== id);
-    setConversations(sortByUpdatedAtDesc(nextList));
-
-    if (id === activeId) {
-      if (nextList.length > 0) setActiveId(nextList[0].id);
-      else {
-        const c = await ai.createConversation("New Chat");
-        setConversations([c]);
-        setActiveId(c.id);
-      }
-      setMessages([]);
-    }
-  };
-
   const handleConfirmDelete = async () => {
     const id = confirmDelete.id;
+    if (!id) return;
+
     const removed = conversations.find((c) => c.id === id) || null;
-    lastDeletedRef.current = removed ? { convo: removed } : null;
-
+    lastDeletedRef.current = null;
     setConfirmDelete({ open: false, id: null });
-    await trulyDeleteConversation(id);
 
-    setToast({
-      open: true,
-      message: "Conversation deleted.",
-      actionText: "Undo",
-      onAction: handleUndoDelete,
-    });
+    try {
+      await chatApi.deleteConversation(id);
+      const remaining = conversations.filter((c) => c.id !== id);
+
+      if (remaining.length > 0) {
+        const sorted = sortByUpdatedAtDesc(remaining);
+        setConversations(sorted);
+        if (id === activeId) {
+          setActiveId(sorted[0].id);
+          setMessages([]);
+        }
+      } else {
+        const conversation = await chatApi.createConversation("New Chat");
+        setConversations([conversation]);
+        setActiveId(conversation.id);
+        setMessages([]);
+      }
+
+      lastDeletedRef.current = removed ? { convo: removed } : null;
+      setToast({
+        open: true,
+        message: "Conversation deleted.",
+        actionText: "Undo",
+        onAction: handleUndoDelete,
+      });
+    } catch (e) {
+      console.error(e);
+      setToast({
+        open: true,
+        message: e.message || "Unable to delete conversation.",
+        actionText: "",
+        onAction: null,
+      });
+    }
   };
 
   const handleUndoDelete = async () => {
@@ -176,13 +311,25 @@ export default function App() {
     if (!deleted) return;
 
     try {
-      const recreated = await ai.createConversation(
+      const recreated = await chatApi.createConversation(
         deleted.title || "New Chat"
       );
-      setConversations((prev) => sortByUpdatedAtDesc([recreated, ...prev]));
+      setConversations((prev) =>
+        sortByUpdatedAtDesc([
+          recreated,
+          ...prev.filter((c) => c.id !== recreated.id),
+        ])
+      );
       setActiveId(recreated.id);
+      lastDeletedRef.current = null;
     } catch (e) {
-      console.error("Undo failed:", e);
+      console.error(e);
+      setToast({
+        open: true,
+        message: e.message || "Unable to restore conversation.",
+        actionText: "",
+        onAction: null,
+      });
     }
   };
 
@@ -194,32 +341,70 @@ export default function App() {
 
   const send = async () => {
     const text = input.trim();
-    if (!text || !activeId) return;
+    if (!text || !activeId || loading || historyLoading || initializing) return;
 
-    setInput("");
     const optimistic = {
       role: "user",
       content: text,
       createdAt: new Date().toISOString(),
     };
     setMessages((m) => [...m, optimistic]);
+    setInput("");
     setLoading(true);
+    setTimeout(ensureComposerVisible, 0);
 
     try {
-      const resp = await ai.chat({ threadId: activeId, message: text });
-      setMessages((m) => [
-        ...m,
-        { role: "assistant", content: resp.content, createdAt: resp.createdAt },
-      ]);
-
-      setConversations((prev) => {
-        const copy = [...prev];
-        const idx = copy.findIndex((c) => c.id === activeId);
-        if (idx >= 0)
-          copy[idx] = { ...copy[idx], updatedAt: new Date().toISOString() };
-        return sortByUpdatedAtDesc(copy);
+      const activeConversation = conversations.find((c) => c.id === activeId);
+      const resp = await chatApi.chat({
+        threadId: activeId,
+        message: text,
+        title: activeConversation?.title,
       });
+
+      const assistantMessage = resp?.message
+        ? {
+            role: resp.message.role || "assistant",
+            content: resp.message.content,
+            createdAt: resp.message.createdAt,
+          }
+        : {
+            role: "assistant",
+            content: resp?.response || "(no reply)",
+            createdAt: new Date().toISOString(),
+          };
+
+      setMessages((m) => [...m, assistantMessage]);
+
+      const meta = resp?.conversation;
+      if (meta) {
+        setConversations((prev) => {
+          const idx = prev.findIndex((c) => c.id === meta.id);
+          const next = idx >= 0
+            ? prev.map((c, index) => (index === idx ? { ...c, ...meta } : c))
+            : [meta, ...prev];
+          return sortByUpdatedAtDesc(next);
+        });
+      } else {
+        setConversations((prev) => {
+          const copy = [...prev];
+          const idx = copy.findIndex(
+            (c) => c.id === (resp?.conversationId || activeId)
+          );
+          if (idx >= 0) {
+            copy[idx] = {
+              ...copy[idx],
+              updatedAt: new Date().toISOString(),
+            };
+          }
+          return sortByUpdatedAtDesc(copy);
+        });
+      }
+
+      if (resp?.conversationId && resp.conversationId !== activeId) {
+        setActiveId(resp.conversationId);
+      }
     } catch (e) {
+      console.error(e);
       setMessages((m) => [
         ...m,
         {
@@ -228,16 +413,19 @@ export default function App() {
           createdAt: new Date().toISOString(),
         },
       ]);
+      setToast({
+        open: true,
+        message: e.message || "Unable to send message.",
+        actionText: "",
+        onAction: null,
+      });
     } finally {
       setLoading(false);
-      setTimeout(
-        () =>
-          listRef.current?.scrollTo({
-            top: listRef.current.scrollHeight,
-            behavior: "smooth",
-          }),
-        50
-      );
+      setTimeout(() =>
+        listRef.current?.scrollTo({
+          top: listRef.current.scrollHeight,
+          behavior: "smooth",
+        }), 50);
     }
   };
 
@@ -247,6 +435,14 @@ export default function App() {
       send();
     }
   };
+
+  if (!token) {
+    return (
+      <div className="fixed inset-x-0 bottom-0 top-[64px] flex items-center justify-center bg-white text-gray-500">
+        Please log in to access the chat.
+      </div>
+    );
+  }
 
   return (
     <div className="fixed inset-x-0 bottom-0 top-[64px] bg-white">
@@ -272,12 +468,21 @@ export default function App() {
             {/* Messages */}
             <div ref={listRef} className="flex-1 overflow-auto">
               <div className="w-full px-6 md:px-10 lg:px-16 py-4 space-y-3">
-                {messages.length === 0 && !loading && (
-                  <div className="text-gray-500 text-sm pt-10">
-                    Start a conversation. Example:{" "}
-                    <em>“Explain the Pythagorean theorem.”</em>
+                {initializing && (
+                  <div className="flex justify-start text-gray-500 text-sm pt-10">
+                    <Spinner />
                   </div>
                 )}
+
+                {messages.length === 0 &&
+                  !loading &&
+                  !historyLoading &&
+                  !initializing && (
+                    <div className="text-gray-500 text-sm pt-10">
+                      Start a conversation. Example:{" "}
+                      <em>“Explain the Pythagorean theorem.”</em>
+                    </div>
+                  )}
 
                 {messages.map((m, idx) => (
                   <div
@@ -300,7 +505,7 @@ export default function App() {
                   </div>
                 ))}
 
-                {loading && (
+                {(loading || historyLoading) && (
                   <div className="flex justify-start">
                     <div className="px-3 py-2 rounded-2xl bg-gray-100 text-gray-900">
                       <Spinner />
@@ -325,10 +530,16 @@ export default function App() {
                     placeholder="Ask anything"
                     className="flex-1 resize-none outline-none bg-transparent border-0 px-4 py-3 min-h-[44px] max-h-40 text-gray-900 placeholder:text-gray-400"
                     rows={1}
+                    disabled={loading || historyLoading || initializing}
                   />
                   <button
                     onClick={send}
-                    disabled={loading || !input.trim()}
+                    disabled={
+                      loading ||
+                      historyLoading ||
+                      initializing ||
+                      !input.trim()
+                    }
                     className="m-1 mr-2 h-10 w-10 rounded-full flex items-center justify-center bg-gray-100 hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed"
                     title="Send"
                   >

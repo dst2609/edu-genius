@@ -99,14 +99,14 @@ const saveChatMessage = async ({ conversationId, userId, prompt, response }) => 
         ? truncateTitle(prompt)
         : conversation.title;
 
-      await tx.conversation.update({
+      const updatedConversation = await tx.conversation.update({
         where: { id: conversationId },
         data: {
           title,
         },
       });
 
-      return chatMessage;
+      return { chatMessage, conversation: updatedConversation };
     });
 
     return result;

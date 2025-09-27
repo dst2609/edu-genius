@@ -1,6 +1,6 @@
 import React from "react";
-import ChatApp from "./ChatApp.jsx";
-import "./ChatApp.css";
+import ChatApp from "./ChatApp/ChatApp.jsx";
+import "./ChatApp/ChatApp.css";
 
 
 export default function Chatbot() {

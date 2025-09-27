@@ -58,18 +58,32 @@ const chatHandler = async (req, res) => {
     // process the response - specific to OpenAI Api resoponse
     const chatResponse = completion.choices[0].message.content.trim();
 
-    //new conversation id and saave the chat message to DB
-    await saveChatMessage({
+    //new conversation id and save the chat message to DB
+    const { chatMessage, conversation } = await saveChatMessage({
       conversationId: activeConversationId,
       userId,
       prompt,
       response: chatResponse,
     });
 
+    const messagePayload = {
+      role: "assistant",
+      content: chatResponse,
+      createdAt: chatMessage?.createdAt,
+    };
+
     res.json({
       prompt: prompt,
       response: chatResponse,
       conversationId: activeConversationId,
+      message: messagePayload,
+      conversation: conversation
+        ? {
+            id: conversation.id,
+            title: conversation.title,
+            updatedAt: conversation.updatedAt,
+          }
+        : undefined,
     });
   } catch (error) {
     console.error(error);
