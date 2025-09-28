@@ -1,0 +1,126 @@
+
+.dashboard-container {
+  display: flex;
+  flex-direction: row;
+  justify-content: flex-start;
+  align-items: flex-start;
+  margin: 40px auto 0 0px;
+  padding-left: 0;
+  max-width: 1200px;
+  min-height: 80vh;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.dashboard-profile {
+  min-width: 320px;
+  max-width: 350px;
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.07);
+  padding: 32px 24px;
+  padding-left: 16px;
+  margin-left: 0;
+  margin-right: 10px;
+  margin-top: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.dashboard-profile .profile-field {
+  width: 100%;
+  margin-bottom: 12px;
+  text-align: left;
+}
+
+.dashboard-profile .profile-label {
+  font-weight: 600;
+  color: #333;
+  margin-right: 8px;
+}
+
+.dashboard-profile .profile-value {
+  color: #555;
+}
+
+.dashboard-courses {
+  flex: 1;
+  margin-top: 0;
+  margin-left: 0;
+  padding-left: 0;
+  display: flex;
+  flex-direction: column;
+  max-width: 600px;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+.dashboard-courses h2 {
+  margin-bottom: 20px;
+  color: #222;
+  font-size: 1.5rem;
+  font-weight: 600;
+}
+
+.courses-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 20px;
+}
+
+.course-card {
+  background: #f9f9f9;
+  border-radius: 10px;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+  padding: 20px 28px;
+  min-width: 180px;
+  max-width: 220px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  border-left: 5px solid #1976d2;
+}
+
+.course-title {
+  font-weight: 600;
+  font-size: 1.1rem;
+  margin-bottom: 8px;
+  color: #1976d2;
+}
+.course-score {
+  font-size: 1.1rem;
+  margin-bottom: 4px;
+  color: #333;
+}
+.course-percent {
+  font-size: 1rem;
+  color: #388e3c;
+  font-weight: 500;
+}
+
+@media (max-width: 900px) {
+  .dashboard-container {
+    flex-direction: column;
+    align-items: flex-start;
+    margin: 24px 0 0 0;
+    max-width: 100vw;
+  }
+  .dashboard-profile {
+    margin-right: 0;
+    margin-bottom: 24px;
+    margin-left: 50;
+    align-items: flex-start;
+  }
+  .dashboard-courses {
+    margin-left: 0;
+    padding-left: 0;
+    width: 100%;
+    margin-top: 24px;
+    align-items: flex-start;
+    max-width: 100vw;
+  }
+  .courses-list {
+    justify-content: flex-start;
+  }
+}
