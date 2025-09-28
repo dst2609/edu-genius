@@ -8,9 +8,11 @@ import {
   Button,
 } from "@mui/material";
 import axios from "axios";
-import "./Dashboard.css";  // keep this
+import "./Dashboard.css";
 
 const Dashboard = () => {
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const navigate = useNavigate();
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -71,6 +73,56 @@ const Dashboard = () => {
     { name: "Mathematical Engineering", percent: 93 },
     { name: "Computer Architecture", percent: 81 },
   ];
+
+  useEffect(() => {
+    const verifyLogin = async () => {
+      try {
+        const token = localStorage.getItem("token");
+        if (!token) {
+          setError("Please log in to view your dashboard");
+          setLoading(false);
+          return;
+        }
+
+        // Verify token by fetching profile (same as UserProfile)
+        await axios.get("http://localhost:3000/users/profile", {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        setLoading(false);
+      } catch (err) {
+        setError(err.response?.data?.message || "Failed to verify login");
+        setLoading(false);
+      }
+    };
+
+    verifyLogin();
+  }, []);
+
+  if (loading) {
+    return (
+      <Box sx={{ display: "flex", justifyContent: "center", mt: 4 }}>
+        <CircularProgress />
+      </Box>
+    );
+  }
+
+  if (error) {
+    return (
+      <Box sx={{ mt: 4, maxWidth: 800, mx: "auto" }}>
+        <Alert severity="error">{error}</Alert>
+        <Button
+          variant="contained"
+          sx={{ mt: 2 }}
+          onClick={() => navigate("/login")}
+        >
+          Go to Login
+        </Button>
+      </Box>
+    );
+  }
 
   return (
     <div className="dashboard-container" style={{ margin: "40px 0 0 0" }}>

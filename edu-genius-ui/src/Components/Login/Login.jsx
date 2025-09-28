@@ -11,6 +11,11 @@ const Login = ({ setToken }) => {
   const navigate = useNavigate();
 
   const handleLogin = async () => {
+    if (!email || !password) {
+      setError("Please fill out all fields");
+      return;
+    }
+
     try {
       const response = await axios.post("http://localhost:3000/users/login", {
         email,
@@ -39,11 +44,13 @@ const Login = ({ setToken }) => {
           type="text"
           placeholder="Email"
           onChange={(e) => setEmail(e.target.value)}
+          required
         />
         <input
           type="password"
           placeholder="Password"
           onChange={(e) => setPassword(e.target.value)}
+          required
         />
         <button onClick={handleLogin}>Login</button>
       </div>
