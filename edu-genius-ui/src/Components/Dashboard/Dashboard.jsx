@@ -8,7 +8,7 @@ import {
   Button,
 } from "@mui/material";
 import axios from "axios";
-import "./Dashboard.css";
+import "./Dashboard.css";  // keep this
 
 const Dashboard = () => {
   const navigate = useNavigate();
@@ -16,7 +16,7 @@ const Dashboard = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // ✅ Fetch user profile
+  // Fetch user profile
   useEffect(() => {
     const fetchUserProfile = async () => {
       try {
