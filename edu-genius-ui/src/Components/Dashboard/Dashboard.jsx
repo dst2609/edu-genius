@@ -121,6 +121,13 @@ const Dashboard = () => {
 
         <div className="dashboard-chat-history">
           <h2>Recent Chat History</h2>
+          <Button
+            variant="contained"
+            sx={{ mb: 2, width: "100%" }}
+            onClick={() => navigate("/chat")}
+          >
+            New Chat
+          </Button>
           {chatHistory.length > 0 ? (
             <div className="chat-history-list">
               {chatHistory.map((conversation, idx) => (
@@ -163,16 +170,6 @@ const Dashboard = () => {
             </div>
           ))}
         </div>
-
-        <Box sx={{ mt: 4, textAlign: "center" }}>
-          <Button
-            variant="contained"
-            sx={{ mt: 2 }}
-            onClick={() => navigate("/chat")}
-          >
-            ChatBot
-          </Button>
-        </Box>
       </div>
     </div>
   );
