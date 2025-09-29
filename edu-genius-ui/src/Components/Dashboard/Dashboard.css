@@ -1,4 +1,16 @@
 
+/* Override Material-UI Container width constraints */
+@media (min-width: 600px) {
+  .css-zzzaw2-MuiContainer-root {
+    max-width: none !important;
+  }
+}
+
+/* Alternative: Override any MUI Container that might be constraining width */
+.MuiContainer-root {
+  max-width: none !important;
+}
+
 .dashboard-container {
   display: flex;
   flex-direction: row;
@@ -127,9 +139,12 @@
   background: #fff;
   border-radius: 8px;
   box-shadow: 0 1px 4px rgba(0,0,0,0.06);
-  padding: 16px;
+  padding: 12px 16px;
   border-left: 3px solid #1976d2;
   transition: transform 0.2s ease;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 }
 
 .chat-history-item:hover {
@@ -141,14 +156,18 @@
 .chat-preview {
   font-size: 0.9rem;
   color: #333;
-  margin-bottom: 8px;
-  line-height: 1.4;
+  line-height: 1.2;
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-right: 12px;
 }
 
 .chat-date {
   font-size: 0.8rem;
   color: #666;
-  text-align: right;
+  flex-shrink: 0;
 }
 
 .no-chat-history {
