@@ -1,4 +1,4 @@
-# QLoRA (Quantized LoRA) fine-tuning for Mistral-7B-Instruct-v0.3 using pure Transformers + PEFT (Parameter-Efficient Fine-Tuning) (no TRL).
+# QLoRA (Quantized LoRA Low-Rank Adaptation) fine-tuning for Mistral-7B-Instruct-v0.3 using pure Transformers + PEFT (Parameter-Efficient Fine-Tuning) (no TRL).
 # Requires: transformers, datasets, peft, bitsandbytes, torch (CUDA build)
 
 import os
