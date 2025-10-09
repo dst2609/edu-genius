@@ -27,9 +27,11 @@ const UserProfile = () => {
     username: "",
     gradeLevel: "",
     region: "",
+    profilePicture: "",
   });
   const [formError, setFormError] = useState(null);
   const navigate = useNavigate();
+  const placeholderImage = "https://picsum.photos/200/300";
 
   useEffect(() => {
     const fetchUserProfile = async () => {
@@ -57,6 +59,7 @@ const UserProfile = () => {
           username: response.data.username || "",
           gradeLevel: response.data.gradeLevel || "",
           region: response.data.region || "",
+          profilePicture: response.data.profilePicture || "",
         });
         setLoading(false);
       } catch (err) {
@@ -90,6 +93,7 @@ const UserProfile = () => {
           username: formData.username,
           gradeLevel: formData.gradeLevel,
           region: formData.region,
+          profilePicture: formData.profilePicture,
         },
         {
           headers: {
@@ -104,6 +108,7 @@ const UserProfile = () => {
         username: formData.username,
         gradeLevel: formData.gradeLevel,
         region: formData.region,
+        profilePicture: formData.profilePicture,
       }));
       setIsEditing(false);
       setFormError(null);
@@ -134,7 +139,6 @@ const UserProfile = () => {
       </Box>
     );
   }
-
   return (
     <Paper
       sx={{
@@ -157,145 +161,236 @@ const UserProfile = () => {
             </Alert>
           )}
           <Grid container spacing={3}>
-            <Grid item xs={12} sm={6}>
-              <TextField
-                label="First Name"
-                name="firstname"
-                value={formData.firstname}
-                onChange={handleInputChange}
-                fullWidth
-                variant="outlined"
-              />
+            <Grid item xs={12} md={8}>
+              <Grid container spacing={3}>
+                <Grid item xs={12} sm={6}>
+                  <TextField
+                    label="First Name"
+                    name="firstname"
+                    value={formData.firstname}
+                    onChange={handleInputChange}
+                    fullWidth
+                    variant="outlined"
+                  />
+                </Grid>
+                <Grid item xs={12} sm={6}>
+                  <TextField
+                    label="Last Name"
+                    name="lastname"
+                    value={formData.lastname}
+                    onChange={handleInputChange}
+                    fullWidth
+                    variant="outlined"
+                  />
+                </Grid>
+                <Grid item xs={12} sm={6}>
+                  <TextField
+                    label="Username"
+                    name="username"
+                    value={formData.username}
+                    onChange={handleInputChange}
+                    fullWidth
+                    variant="outlined"
+                  />
+                </Grid>
+                <Grid item xs={12} sm={6}>
+                  <TextField
+                    label="Grade Level"
+                    name="gradeLevel"
+                    value={formData.gradeLevel}
+                    onChange={handleInputChange}
+                    fullWidth
+                    variant="outlined"
+                  />
+                </Grid>
+                <Grid item xs={12}>
+                  <FormControl fullWidth variant="outlined">
+                    <InputLabel id="region-label">Region</InputLabel>
+                    <Select
+                      labelId="region-label"
+                      name="region"
+                      value={formData.region}
+                      label="Region"
+                      onChange={handleInputChange}
+                      sx={{
+                        textAlign: "left",
+                        minWidth: "200px",
+                        "& .MuiSelect-select": {
+                          padding: "12px 14px",
+                        },
+                      }}
+                    >
+                      <MenuItem value="North America">North America</MenuItem>
+                      <MenuItem value="Central/South America">
+                        Central/South America
+                      </MenuItem>
+                      <MenuItem value="Europe">Europe</MenuItem>
+                      <MenuItem value="Asia">Asia</MenuItem>
+                      <MenuItem value="Australia">Australia</MenuItem>
+                      <MenuItem value="Universal">Universal</MenuItem>
+                    </Select>
+                  </FormControl>
+                </Grid>
+                <Grid item xs={12}>
+                  <TextField
+                    label="Profile Picture URL"
+                    name="profilePicture"
+                    value={formData.profilePicture}
+                    onChange={handleInputChange}
+                    fullWidth
+                    variant="outlined"
+                    placeholder="https://example.com/my-profile.jpg"
+                  />
+                </Grid>
+                <Grid item xs={12}>
+                  <TextField
+                    label="Email"
+                    value={user.email || "N/A"}
+                    fullWidth
+                    variant="outlined"
+                    disabled
+                    sx={{ mt: 1 }}
+                  />
+                </Grid>
+                <Grid item xs={12}>
+                  <Button
+                    type="submit"
+                    variant="contained"
+                    sx={{ mr: 2, px: 3, py: 1 }}
+                  >
+                    Save Changes
+                  </Button>
+                  <Button
+                    variant="outlined"
+                    onClick={handleEditToggle}
+                    sx={{ px: 3, py: 1 }}
+                  >
+                    Cancel
+                  </Button>
+                </Grid>
+              </Grid>
             </Grid>
-            <Grid item xs={12} sm={6}>
-              <TextField
-                label="Last Name"
-                name="lastname"
-                value={formData.lastname}
-                onChange={handleInputChange}
-                fullWidth
-                variant="outlined"
-              />
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <TextField
-                label="Username"
-                name="username"
-                value={formData.username}
-                onChange={handleInputChange}
-                fullWidth
-                variant="outlined"
-              />
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <TextField
-                label="Grade Level"
-                name="gradeLevel"
-                value={formData.gradeLevel}
-                onChange={handleInputChange}
-                fullWidth
-                variant="outlined"
-              />
-            </Grid>
-            <Grid item xs={12}>
-              <FormControl fullWidth variant="outlined">
-                <InputLabel id="region-label">Region</InputLabel>
-                <Select
-                  labelId="region-label"
-                  name="region"
-                  value={formData.region}
-                  label="Region"
-                  onChange={handleInputChange}
+            <Grid item xs={12} md={4}>
+              <Box
+                sx={{
+                  display: "flex",
+                  flexDirection: "column",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  height: "100%",
+                  border: "1px dashed",
+                  borderColor: "grey.400",
+                  borderRadius: 2,
+                  p: 2,
+                }}
+              >
+                <Box
+                  component="img"
+                  src={formData.profilePicture || placeholderImage}
+                  alt="Profile preview"
                   sx={{
-                    textAlign: "left",
-                    minWidth: "200px", // Ensure sufficient width
-                    "& .MuiSelect-select": {
-                      padding: "12px 14px", // Match input padding
-                    },
+                    width: 180,
+                    height: 180,
+                    objectFit: "cover",
+                    borderRadius: "50%",
+                    mb: 2,
                   }}
+                  onError={(e) => {
+                    e.target.onerror = null;
+                    e.target.src = placeholderImage;
+                  }}
+                />
+                <Typography
+                  variant="body2"
+                  color="text.secondary"
+                  align="center"
                 >
-                  <MenuItem value="North America">North America</MenuItem>
-                  <MenuItem value="Central/South America">
-                    Central/South America
-                  </MenuItem>
-                  <MenuItem value="Europe">Europe</MenuItem>
-                  <MenuItem value="Asia">Asia</MenuItem>
-                  <MenuItem value="Australia">Australia</MenuItem>
-                  <MenuItem value="Universal">Universal</MenuItem>
-                </Select>
-              </FormControl>
-            </Grid>
-            <Grid item xs={12}>
-              <TextField
-                label="Email"
-                value={user.email || "N/A"}
-                fullWidth
-                variant="outlined"
-                disabled
-                sx={{ mt: 1 }}
-              />
-            </Grid>
-            <Grid item xs={12}>
-              <Button
-                type="submit"
-                variant="contained"
-                sx={{ mr: 2, px: 3, py: 1 }}
-              >
-                Save Changes
-              </Button>
-              <Button
-                variant="outlined"
-                onClick={handleEditToggle}
-                sx={{ px: 3, py: 1 }}
-              >
-                Cancel
-              </Button>
+                  Profile picture preview
+                </Typography>
+              </Box>
             </Grid>
           </Grid>
         </Box>
       ) : (
-        <Box>
-          <Box sx={{ mb: 4 }}>
-            <Typography variant="h6" gutterBottom>
-              First Name: {user?.firstname || "N/A"}
-            </Typography>
-            <Typography variant="body1" gutterBottom>
-              Last Name: {user?.lastname || "N/A"}
-            </Typography>
-            <Typography variant="body1" gutterBottom>
-              Username: {user?.username || "N/A"}
-            </Typography>
-            <Typography variant="body1" gutterBottom>
-              Email: {user?.email || "N/A"}
-            </Typography>
-            <Typography variant="body1" gutterBottom>
-              Grade Level: {user?.gradeLevel || "N/A"}
-            </Typography>
-            <Typography variant="body1" gutterBottom>
-              Region: {user?.region || "N/A"}
-            </Typography>
-            <Typography variant="body1" gutterBottom>
-              Joined:{" "}
-              {user?.createdAt
-                ? new Date(user.createdAt).toLocaleDateString()
-                : "N/A"}
-            </Typography>
-          </Box>
-          <Button
-            variant="contained"
-            onClick={handleEditToggle}
-            sx={{ mr: 2, px: 3, py: 1 }}
-          >
-            Edit Profile
-          </Button>
-          <Button
-            variant="contained"
-            onClick={() => navigate("/dashboard")}
-            sx={{ px: 3, py: 1 }}
-          >
-            Back to Dashboard
-          </Button>
-        </Box>
+        <Grid container spacing={3}>
+          <Grid item xs={12} md={8}>
+            <Box sx={{ mb: 4 }}>
+              <Typography variant="h6" gutterBottom>
+                First Name: {user?.firstname || "N/A"}
+              </Typography>
+              <Typography variant="body1" gutterBottom>
+                Last Name: {user?.lastname || "N/A"}
+              </Typography>
+              <Typography variant="body1" gutterBottom>
+                Username: {user?.username || "N/A"}
+              </Typography>
+              <Typography variant="body1" gutterBottom>
+                Email: {user?.email || "N/A"}
+              </Typography>
+              <Typography variant="body1" gutterBottom>
+                Grade Level: {user?.gradeLevel || "N/A"}
+              </Typography>
+              <Typography variant="body1" gutterBottom>
+                Region: {user?.region || "N/A"}
+              </Typography>
+              <Typography variant="body1" gutterBottom>
+                Joined:{" "}
+                {user?.createdAt
+                  ? new Date(user.createdAt).toLocaleDateString()
+                  : "N/A"}
+              </Typography>
+            </Box>
+            <Button
+              variant="contained"
+              onClick={handleEditToggle}
+              sx={{ mr: 2, px: 3, py: 1 }}
+            >
+              Edit Profile
+            </Button>
+            <Button
+              variant="contained"
+              onClick={() => navigate("/dashboard")}
+              sx={{ px: 3, py: 1 }}
+            >
+              Back to Dashboard
+            </Button>
+          </Grid>
+          <Grid item xs={12} md={4}>
+            <Box
+              sx={{
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                justifyContent: "center",
+                height: "100%",
+                border: "1px dashed",
+                borderColor: "grey.400",
+                borderRadius: 2,
+                p: 2,
+              }}
+            >
+              <Box
+                component="img"
+                src={user?.profilePicture || placeholderImage}
+                alt="Profile"
+                sx={{
+                  width: 180,
+                  height: 180,
+                  objectFit: "cover",
+                  borderRadius: "50%",
+                  mb: 2,
+                }}
+                onError={(e) => {
+                  e.target.onerror = null;
+                  e.target.src = placeholderImage;
+                }}
+              />
+              <Typography variant="body2" color="text.secondary" align="center">
+                Profile picture
+              </Typography>
+            </Box>
+          </Grid>
+        </Grid>
       )}
     </Paper>
   );
