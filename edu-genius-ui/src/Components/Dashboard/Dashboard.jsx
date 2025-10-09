@@ -6,7 +6,13 @@ import {
   CircularProgress,
   Alert,
   Button,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  TextField,
 } from "@mui/material";
+import AddCircleOutlineIcon from "@mui/icons-material/AddCircleOutline";
 import axios from "axios";
 import "./Dashboard.css";
 
@@ -15,14 +21,23 @@ const Dashboard = () => {
   const [error, setError] = useState(null);
   const [user, setUser] = useState(null);
   const [chatHistory, setChatHistory] = useState([]);
-  const navigate = useNavigate();
 
-  // Example courses
-  const courses = [
+  // NEW: courses are now in state so we can add to them
+  const [courses, setCourses] = useState([
     { name: "DSA (CMPE 126)", percent: 86 },
     { name: "Mathematical Engineering", percent: 93 },
     { name: "Computer Architecture", percent: 81 },
-  ];
+  ]);
+
+  // NEW: dialog/form state
+  const [isAddOpen, setIsAddOpen] = useState(false);
+  const [newCourseName, setNewCourseName] = useState("");
+  const [newCoursePercent, setNewCoursePercent] = useState("");
+
+  const [nameError, setNameError] = useState("");
+  const [percentError, setPercentError] = useState("");
+
+  const navigate = useNavigate();
 
   // Fetch user profile and chat history
   useEffect(() => {
@@ -46,7 +61,7 @@ const Dashboard = () => {
           const chatResponse = await axios.get("http://localhost:3000/chat/conversations", {
             headers: { Authorization: `Bearer ${token}` },
           });
-          setChatHistory(chatResponse.data.conversations.slice(0, 5)); // Get latest 5 conversations
+        setChatHistory(chatResponse.data.conversations.slice(0, 5));
         } catch (chatErr) {
           console.log("No chat history available or error fetching conversations");
           setChatHistory([]);
@@ -61,6 +76,58 @@ const Dashboard = () => {
 
     fetchUserData();
   }, []);
+
+  // NEW: open/close dialog
+  const openAddDialog = () => {
+    setNewCourseName("");
+    setNewCoursePercent("");
+    setNameError("");
+    setPercentError("");
+    setIsAddOpen(true);
+  };
+  const closeAddDialog = () => setIsAddOpen(false);
+
+  // NEW: validate and add course
+  const handleAddCourse = async () => {
+    let valid = true;
+
+    if (!newCourseName.trim()) {
+      setNameError("Course name is required");
+      valid = false;
+    } else {
+      setNameError("");
+    }
+
+    const pct = Number(newCoursePercent);
+    if (Number.isNaN(pct)) {
+      setPercentError("Enter a number");
+      valid = false;
+    } else if (pct < 0 || pct > 100) {
+      setPercentError("Percent must be between 0 and 100");
+      valid = false;
+    } else {
+      setPercentError("");
+    }
+
+    if (!valid) return;
+
+    const course = { name: newCourseName.trim(), percent: pct };
+
+    // Instant UI update
+    setCourses((prev) => [...prev, course]);
+    closeAddDialog();
+
+    // OPTIONAL: persist to backend if you have an endpoint
+    // try {
+    //   const token = localStorage.getItem("token");
+    //   await axios.post("http://localhost:3000/courses", course, {
+    //     headers: { Authorization: `Bearer ${token}` },
+    //   });
+    // } catch (e) {
+    //   console.error("Failed to save course:", e);
+    //   // Optionally show a toast/snackbar or revert optimistic update
+    // }
+  };
 
   if (loading) {
     return (
@@ -161,16 +228,58 @@ const Dashboard = () => {
       </div>
 
       <div className="dashboard-courses">
-        <h2>Courses & Test Scores</h2>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+          <h2>Courses & Test Scores</h2>
+          {/* NEW: Add Course button */}
+          <Button
+            variant="outlined"
+            startIcon={<AddCircleOutlineIcon />}
+            onClick={openAddDialog}
+          >
+            Add Course
+          </Button>
+        </div>
+
         <div className="courses-list">
           {courses.map((course, idx) => (
-            <div className="course-card" key={idx}>
+            <div className="course-card" key={`${course.name}-${idx}`}>
               <div className="course-title">{course.name}</div>
               <div className="course-percent">{course.percent}%</div>
             </div>
           ))}
         </div>
       </div>
+
+      {/* NEW: Add Course dialog */}
+      <Dialog open={isAddOpen} onClose={closeAddDialog} fullWidth maxWidth="sm">
+        <DialogTitle>Add a new course</DialogTitle>
+        <DialogContent sx={{ pt: 2 }}>
+          <TextField
+            label="Course name"
+            fullWidth
+            margin="normal"
+            value={newCourseName}
+            onChange={(e) => setNewCourseName(e.target.value)}
+            error={!!nameError}
+            helperText={nameError || "e.g., Operating Systems"}
+          />
+          <TextField
+            label="Percent"
+            type="number"
+            fullWidth
+            margin="normal"
+            value={newCoursePercent}
+            onChange={(e) => setNewCoursePercent(e.target.value)}
+            inputProps={{ min: 0, max: 100 }}
+            error={!!percentError}
+            helperText={percentError || "0–100"}
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={closeAddDialog}>Cancel</Button>
+          <Button variant="contained" onClick={handleAddCourse}>Save</Button>
+        </DialogActions>
+      </Dialog>
     </div>
   );
 };
