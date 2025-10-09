@@ -62,10 +62,13 @@ const userController = {
       const salt = await bcrypt.genSalt(10);
       const hashedPassword = await bcrypt.hash(req.body.password, salt);
 
+      const placeholderImage = "https://picsum.photos/200/300";
+
       const newUser = {
         _id: new ObjectId(),
         ...req.body,
         password: hashedPassword,
+        profilePicture: req.body.profilePicture || placeholderImage,
         createdAt: new Date(),
       };
 
@@ -158,7 +161,14 @@ const userController = {
       }
 
       const userId = new ObjectId(req.user);
-      const { firstname, lastname, username, gradeLevel, region } = req.body;
+      const {
+        firstname,
+        lastname,
+        username,
+        gradeLevel,
+        region,
+        profilePicture,
+      } = req.body;
 
       // Validate input (basic example)
       if (!firstname || !lastname || !username) {
@@ -173,6 +183,7 @@ const userController = {
         username,
         gradeLevel: gradeLevel || "",
         region: region || "",
+        profilePicture: profilePicture || "https://picsum.photos/200/300",
         updatedAt: new Date(),
       };
 
