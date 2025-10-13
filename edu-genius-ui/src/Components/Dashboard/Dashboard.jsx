@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import {
@@ -12,8 +11,14 @@ import {
   DialogContent,
   DialogActions,
   TextField,
+  IconButton,
+  Stack,
+  Tooltip,
 } from "@mui/material";
 import AddCircleOutlineIcon from "@mui/icons-material/AddCircleOutline";
+// >>> NEW
+import EditIcon from "@mui/icons-material/Edit";
+import DeleteIcon from "@mui/icons-material/Delete";
 import axios from "axios";
 import "./Dashboard.css";
 
@@ -38,6 +43,18 @@ const Dashboard = () => {
 
   const [nameError, setNameError] = useState("");
   const [percentError, setPercentError] = useState("");
+
+  // >>> NEW — edit dialog state
+  const [isEditOpen, setIsEditOpen] = useState(false);
+  const [editCourse, setEditCourse] = useState(null); // course object being edited
+  const [editName, setEditName] = useState("");
+  const [editPercent, setEditPercent] = useState("");
+  const [editNameError, setEditNameError] = useState("");
+  const [editPercentError, setEditPercentError] = useState("");
+
+  // >>> NEW — delete confirm
+  const [isDeleteOpen, setIsDeleteOpen] = useState(false);
+  const [deleteCourse, setDeleteCourse] = useState(null);
 
   const navigate = useNavigate();
 
@@ -187,6 +204,133 @@ const Dashboard = () => {
     }
   };
 
+  // >>> NEW — open edit dialog prefilled
+  const openEditDialog = (course) => {
+    setEditCourse(course);
+    setEditName(course.name || "");
+    setEditPercent(String(course.percent ?? ""));
+    setEditNameError("");
+    setEditPercentError("");
+    setIsEditOpen(true);
+  };
+
+  const closeEditDialog = () => {
+    setIsEditOpen(false);
+    setEditCourse(null);
+  };
+
+  // >>> NEW — save edit (optimistic + sync)
+  const handleSaveEdit = async () => {
+    if (!editCourse) return;
+
+    let valid = true;
+
+    if (!editName.trim()) {
+      setEditNameError("Course name is required");
+      valid = false;
+    } else {
+      setEditNameError("");
+    }
+
+    const pct = Number(editPercent);
+    if (Number.isNaN(pct)) {
+      setEditPercentError("Enter a number");
+      valid = false;
+    } else if (pct < 0 || pct > 100) {
+      setEditPercentError("Percent must be between 0 and 100");
+      valid = false;
+    } else {
+      setEditPercentError("");
+    }
+
+    if (!valid) return;
+
+    // Guard against editing non-persisted temp items
+    if (!editCourse._id || String(editCourse._id).startsWith("tmp_")) {
+      setError("Please wait until the course is saved before editing it.");
+      return;
+    }
+
+    const updated = {
+      ...editCourse,
+      name: editName.trim(),
+      percent: Math.round(pct),
+    };
+
+    // Optimistic update
+    setCourses((prev) => prev.map((c) => (c._id === updated._id ? updated : c)));
+    closeEditDialog();
+
+    try {
+      await axios.put(`${API_BASE}/courses/${encodeURIComponent(updated._id)}`, {
+        name: updated.name,
+        percent: updated.percent,
+      }, {
+        headers: authHeaders(),
+        timeout: 8000,
+      });
+
+      await fetchCourses();
+      setError(null);
+    } catch (e) {
+      console.error("Failed to update course:", e);
+      setError(
+        e?.response?.data?.message ||
+          e?.response?.data?.error ||
+          "Failed to update course"
+      );
+      // Re-fetch to rollback to server state
+      await fetchCourses();
+    }
+  };
+
+  // >>> NEW — delete flow
+  const openDeleteDialog = (course) => {
+    setDeleteCourse(course);
+    setIsDeleteOpen(true);
+  };
+  const closeDeleteDialog = () => {
+    setIsDeleteOpen(false);
+    setDeleteCourse(null);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!deleteCourse) return;
+
+    // Guard for temp items
+    if (!deleteCourse._id || String(deleteCourse._id).startsWith("tmp_")) {
+      // Just remove locally
+      setCourses((prev) => prev.filter((c) => c._id !== deleteCourse._id));
+      closeDeleteDialog();
+      return;
+    }
+
+    // Optimistic remove
+    const removedId = deleteCourse._id;
+    const snapshot = courses; // keep snapshot to rollback
+    setCourses((prev) => prev.filter((c) => c._id !== removedId));
+    closeDeleteDialog();
+
+    try {
+      await axios.delete(`${API_BASE}/courses/${encodeURIComponent(removedId)}`, {
+        headers: authHeaders(),
+        timeout: 8000,
+      });
+
+      await fetchCourses();
+      setError(null);
+    } catch (e) {
+      console.error("Failed to delete course:", e);
+      setError(
+        e?.response?.data?.message ||
+          e?.response?.data?.error ||
+          "Failed to delete course"
+      );
+      // Rollback
+      setCourses(snapshot);
+    }
+  };
+
   if (loading) {
     return (
       <Box sx={{ display: "flex", justifyContent: "center", mt: 4 }}>
@@ -312,7 +456,7 @@ const Dashboard = () => {
             justifyContent: "space-between",
           }}
         >
-          <h2>Courses & Test Scores</h2>
+          <h2>Courses</h2>
           <Button
             variant="outlined"
             startIcon={<AddCircleOutlineIcon />}
@@ -325,7 +469,30 @@ const Dashboard = () => {
         <div className="courses-list">
           {courses.map((course, idx) => (
             <div className="course-card" key={course._id || `${course.name}-${idx}`}>
-              <div className="course-title">{course.name}</div>
+              <div className="course-card-top" style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                <div className="course-title">{course.name}</div>
+                {/* >>> NEW — inline actions */}
+                <Stack direction="row" spacing={1}>
+                  <Tooltip title="Edit">
+                    <IconButton
+                      size="small"
+                      onClick={() => openEditDialog(course)}
+                      aria-label={`Edit ${course.name}`}
+                    >
+                      <EditIcon fontSize="small" />
+                    </IconButton>
+                  </Tooltip>
+                  <Tooltip title="Delete">
+                    <IconButton
+                      size="small"
+                      onClick={() => openDeleteDialog(course)}
+                      aria-label={`Delete ${course.name}`}
+                    >
+                      <DeleteIcon fontSize="small" />
+                    </IconButton>
+                  </Tooltip>
+                </Stack>
+              </div>
               <div className="course-percent">{course.percent}%</div>
             </div>
           ))}
@@ -366,6 +533,55 @@ const Dashboard = () => {
           <Button onClick={closeAddDialog}>Cancel</Button>
           <Button variant="contained" onClick={handleAddCourse}>
             Save
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* >>> NEW — Edit Course dialog */}
+      <Dialog open={isEditOpen} onClose={closeEditDialog} fullWidth maxWidth="sm">
+        <DialogTitle>Edit course</DialogTitle>
+        <DialogContent sx={{ pt: 2 }}>
+          <TextField
+            label="Course name"
+            fullWidth
+            margin="normal"
+            value={editName}
+            onChange={(e) => setEditName(e.target.value)}
+            error={!!editNameError}
+            helperText={editNameError || "Update the course name"}
+          />
+          <TextField
+            label="Percent"
+            type="number"
+            fullWidth
+            margin="normal"
+            value={editPercent}
+            onChange={(e) => setEditPercent(e.target.value)}
+            inputProps={{ min: 0, max: 100 }}
+            error={!!editPercentError}
+            helperText={editPercentError || "0–100"}
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={closeEditDialog}>Cancel</Button>
+          <Button variant="contained" onClick={handleSaveEdit}>
+            Save Changes
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* >>> NEW — Delete confirm dialog */}
+      <Dialog open={isDeleteOpen} onClose={closeDeleteDialog} fullWidth maxWidth="xs">
+        <DialogTitle>Delete course?</DialogTitle>
+        <DialogContent>
+          <Typography>
+            {`Are you sure you want to delete “${deleteCourse?.name || ""}”? This can’t be undone.`}
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={closeDeleteDialog}>Cancel</Button>
+          <Button color="error" variant="contained" onClick={handleConfirmDelete}>
+            Delete
           </Button>
         </DialogActions>
       </Dialog>

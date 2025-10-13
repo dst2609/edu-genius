@@ -12,6 +12,7 @@ router.use(auth);
 router.get("/", listCourses);
 router.post("/", createCourse);
 router.patch("/:id", updateCourse);
+router.put("/:id", updateCourse); 
 router.delete("/:id", deleteCourse);
 
 module.exports = router;

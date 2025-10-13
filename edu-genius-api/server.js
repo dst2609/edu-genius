@@ -1,9 +1,8 @@
-// TOP of file
 require("dotenv").config();
 const cors = require("cors");
 const express = require("express");
 const morgan = require("morgan");
-const mongoose = require("mongoose");                 // ⬅ add
+const mongoose = require("mongoose");                 
 
 const { rateLimiter } = require("./security/rateSecurity");
 const { connectToDB, createUsersCollection } = require("./db/database.js");
@@ -13,7 +12,7 @@ const app = express();
 // middleware
 app.use(morgan("dev"));
 app.use(cors());
-app.use(express.json());                              // ⬅ make sure this line exists
+app.use(express.json());                             
 
 // ⬅ connect Mongoose for Course model
 mongoose
@@ -30,11 +29,11 @@ connectToDB().then(() => {
 
   const userRoutes = require("./routes/userRoutes");
   const chatRoutes = require("./routes/chatRoutes");
-  const courseRoutes = require("./routes/courseRoutes");  // ⬅ add
+  const courseRoutes = require("./routes/courseRoutes"); 
 
   app.use("/users", userRoutes);
   app.use("/chat", chatRoutes);
-  app.use("/courses", courseRoutes);                      // ⬅ add
+  app.use("/courses", courseRoutes);                    
 
   app.listen(3000, () => console.log("Server started on port 3000"));
 });
