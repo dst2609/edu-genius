@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import {
@@ -16,20 +17,21 @@ import AddCircleOutlineIcon from "@mui/icons-material/AddCircleOutline";
 import axios from "axios";
 import "./Dashboard.css";
 
+const API_BASE =
+  (import.meta && import.meta.env && (import.meta.env.VITE_API_URL || import.meta.env.VITE_BACKEND_URL)) ||
+  "http://localhost:3000";
+
 const Dashboard = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+
   const [user, setUser] = useState(null);
   const [chatHistory, setChatHistory] = useState([]);
 
-  // NEW: courses are now in state so we can add to them
-  const [courses, setCourses] = useState([
-    { name: "DSA (CMPE 126)", percent: 86 },
-    { name: "Mathematical Engineering", percent: 93 },
-    { name: "Computer Architecture", percent: 81 },
-  ]);
+  // Courses from backend (replaces hardcoded defaults)
+  const [courses, setCourses] = useState([]);
 
-  // NEW: dialog/form state
+  // Add-course dialog state
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [newCourseName, setNewCourseName] = useState("");
   const [newCoursePercent, setNewCoursePercent] = useState("");
@@ -39,7 +41,39 @@ const Dashboard = () => {
 
   const navigate = useNavigate();
 
-  // Fetch user profile and chat history
+  const authHeaders = () => {
+    const token = localStorage.getItem("token");
+    return token ? { Authorization: `Bearer ${token}` } : {};
+  };
+
+  // ------- Fetch all courses (source of truth) -------
+  const fetchCourses = async () => {
+    try {
+      const coursesRes = await axios.get(`${API_BASE}/courses`, {
+        headers: authHeaders(),
+        timeout: 8000,
+      });
+
+      // Support both API shapes: array or { courses: [...] }
+      const raw = Array.isArray(coursesRes.data)
+        ? coursesRes.data
+        : coursesRes.data?.courses || [];
+
+      const list = raw.map((c) => ({
+        _id: c._id,
+        name: c.name,
+        percent:
+          typeof c.percent === "number" ? c.percent : Number(c.percent) || 0,
+      }));
+
+      setCourses(list);
+    } catch (courseErr) {
+      console.error("Failed to fetch courses:", courseErr);
+      setError("Failed to fetch courses");
+    }
+  };
+
+  // Fetch user profile, chat history, and courses
   useEffect(() => {
     const fetchUserData = async () => {
       try {
@@ -50,34 +84,40 @@ const Dashboard = () => {
           return;
         }
 
-        // Fetch user profile
-        const profileResponse = await axios.get("http://localhost:3000/users/profile", {
-          headers: { Authorization: `Bearer ${token}` },
+        // User profile
+        const profileResponse = await axios.get(`${API_BASE}/users/profile`, {
+          headers: authHeaders(),
+          timeout: 8000,
         });
         setUser(profileResponse.data);
 
-        // Fetch chat conversations
+        // Chat conversations (best-effort)
         try {
-          const chatResponse = await axios.get("http://localhost:3000/chat/conversations", {
-            headers: { Authorization: `Bearer ${token}` },
-          });
-        setChatHistory(chatResponse.data.conversations.slice(0, 5));
-        } catch (chatErr) {
-          console.log("No chat history available or error fetching conversations");
+          const chatResponse = await axios.get(
+            `${API_BASE}/chat/conversations`,
+            { headers: authHeaders(), timeout: 8000 }
+          );
+          setChatHistory((chatResponse.data?.conversations || []).slice(0, 5));
+        } catch {
           setChatHistory([]);
         }
 
+        // Courses for this user (always sync from server)
+        await fetchCourses();
+
         setLoading(false);
       } catch (err) {
+        console.error(err);
         setError(err.response?.data?.message || "Failed to fetch user data");
         setLoading(false);
       }
     };
 
     fetchUserData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // NEW: open/close dialog
+  // Dialog open/close
   const openAddDialog = () => {
     setNewCourseName("");
     setNewCoursePercent("");
@@ -87,7 +127,7 @@ const Dashboard = () => {
   };
   const closeAddDialog = () => setIsAddOpen(false);
 
-  // NEW: validate and add course
+  // Add course (validates + persists)
   const handleAddCourse = async () => {
     let valid = true;
 
@@ -111,22 +151,40 @@ const Dashboard = () => {
 
     if (!valid) return;
 
-    const course = { name: newCourseName.trim(), percent: pct };
+    const optimistic = {
+      _id: `tmp_${Date.now()}`,
+      name: newCourseName.trim(),
+      percent: Math.round(pct),
+    };
 
-    // Instant UI update
-    setCourses((prev) => [...prev, course]);
+    // Optimistic UI update (append; do NOT replace existing items)
+    setCourses((prev) => [...prev, optimistic]);
     closeAddDialog();
 
-    // OPTIONAL: persist to backend if you have an endpoint
-    // try {
-    //   const token = localStorage.getItem("token");
-    //   await axios.post("http://localhost:3000/courses", course, {
-    //     headers: { Authorization: `Bearer ${token}` },
-    //   });
-    // } catch (e) {
-    //   console.error("Failed to save course:", e);
-    //   // Optionally show a toast/snackbar or revert optimistic update
-    // }
+    try {
+      const payload = {
+        name: optimistic.name,
+        percent: optimistic.percent,
+      };
+
+      await axios.post(`${API_BASE}/courses`, payload, {
+        headers: authHeaders(),
+        timeout: 8000,
+      });
+
+      // After a successful save, always re-fetch the full list
+      await fetchCourses();
+      setError(null);
+    } catch (e) {
+      console.error("Failed to save course:", e);
+      setError(
+        e?.response?.data?.message ||
+          e?.response?.data?.error ||
+          "Failed to save course"
+      );
+      // Revert optimistic add
+      setCourses((prev) => prev.filter((c) => c._id !== optimistic._id));
+    }
   };
 
   if (loading) {
@@ -137,7 +195,7 @@ const Dashboard = () => {
     );
   }
 
-  if (error) {
+  if (error && !user) {
     return (
       <Box sx={{ mt: 4, maxWidth: 800, mx: "auto" }}>
         <Alert severity="error">{error}</Alert>
@@ -154,9 +212,18 @@ const Dashboard = () => {
 
   return (
     <div className="dashboard-container" style={{ margin: "40px 0 0 0" }}>
+      {/* Page-level error (non-blocking) */}
+      {error && user && (
+        <Alert severity="error" sx={{ mb: 2, maxWidth: 1000, margin: "0 auto" }}>
+          {error}
+        </Alert>
+      )}
+
       <div className="dashboard-left-column">
         <div className="dashboard-profile">
-          <h2 style={{ fontWeight: "bold", fontSize: "1.8rem" }}>Student Details</h2>
+          <h2 style={{ fontWeight: "bold", fontSize: "1.8rem" }}>
+            Student Details
+          </h2>
           <div className="profile-field">
             <span className="profile-label">First Name:</span>{" "}
             <span className="profile-value">{user?.firstname || "N/A"}</span>
@@ -198,23 +265,33 @@ const Dashboard = () => {
           {chatHistory.length > 0 ? (
             <div className="chat-history-list">
               {chatHistory.map((conversation, idx) => (
-                <div 
-                  className="chat-history-item" 
+                <div
+                  className="chat-history-item"
                   key={conversation.id || idx}
-                  onClick={() => navigate(`/chat?conversationId=${conversation.id}`)}
+                  onClick={() =>
+                    navigate(`/chat?conversationId=${conversation.id}`)
+                  }
                 >
                   <div className="chat-preview">
                     {conversation.title || "Untitled Conversation"}
                   </div>
                   <div className="chat-date">
-                    {new Date(conversation.updatedAt || conversation.createdAt).toLocaleDateString()}
+                    {(() => {
+                      const d = new Date(
+                        conversation.updatedAt || conversation.createdAt
+                      );
+                      return isNaN(d) ? "" : d.toLocaleDateString();
+                    })()}
                   </div>
                 </div>
               ))}
             </div>
           ) : (
             <div className="no-chat-history">
-              <p>No chat history available. Start a conversation with the ChatBot!</p>
+              <p>
+                No chat history available. Start a conversation with the
+                ChatBot!
+              </p>
               <Button
                 variant="outlined"
                 sx={{ mt: 1 }}
@@ -228,9 +305,14 @@ const Dashboard = () => {
       </div>
 
       <div className="dashboard-courses">
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+          }}
+        >
           <h2>Courses & Test Scores</h2>
-          {/* NEW: Add Course button */}
           <Button
             variant="outlined"
             startIcon={<AddCircleOutlineIcon />}
@@ -242,15 +324,20 @@ const Dashboard = () => {
 
         <div className="courses-list">
           {courses.map((course, idx) => (
-            <div className="course-card" key={`${course.name}-${idx}`}>
+            <div className="course-card" key={course._id || `${course.name}-${idx}`}>
               <div className="course-title">{course.name}</div>
               <div className="course-percent">{course.percent}%</div>
             </div>
           ))}
+          {courses.length === 0 && (
+            <div className="no-chat-history" style={{ marginTop: 12 }}>
+              <p>No courses yet. Click “Add Course” to create one.</p>
+            </div>
+          )}
         </div>
       </div>
 
-      {/* NEW: Add Course dialog */}
+      {/* Add Course dialog */}
       <Dialog open={isAddOpen} onClose={closeAddDialog} fullWidth maxWidth="sm">
         <DialogTitle>Add a new course</DialogTitle>
         <DialogContent sx={{ pt: 2 }}>
@@ -277,7 +364,9 @@ const Dashboard = () => {
         </DialogContent>
         <DialogActions>
           <Button onClick={closeAddDialog}>Cancel</Button>
-          <Button variant="contained" onClick={handleAddCourse}>Save</Button>
+          <Button variant="contained" onClick={handleAddCourse}>
+            Save
+          </Button>
         </DialogActions>
       </Dialog>
     </div>
