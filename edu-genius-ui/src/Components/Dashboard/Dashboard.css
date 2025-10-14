@@ -1,12 +1,9 @@
-
-/* Override Material-UI Container width constraints */
 @media (min-width: 600px) {
   .css-zzzaw2-MuiContainer-root {
     max-width: none !important;
   }
 }
 
-/* Alternative: Override any MUI Container that might be constraining width */
 .MuiContainer-root {
   max-width: none !important;
 }

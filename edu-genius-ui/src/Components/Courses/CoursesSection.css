@@ -1,0 +1,77 @@
+.dashboard-courses {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    box-sizing: border-box;
+  }
+  
+  .dashboard-courses h2 {
+    margin-bottom: 20px;
+    color: #222;
+    font-size: 1.5rem;
+    font-weight: 600;
+  }
+  
+  .courses-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 20px;
+  }
+  
+  .course-card {
+    background: #f9f9f9;
+    border-radius: 10px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+    padding: 16px 16px;
+    width: 220px;               
+    height: 110px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    border-left: 5px solid #1976d2;
+    box-sizing: border-box;
+    overflow: hidden;          
+    word-break: break-word;
+  }
+  
+  .course-card-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+  }
+  
+  .course-title {
+    flex: 1;
+    min-width: 0;              
+    font-weight: 600;
+    font-size: 1.05rem;
+    color: #1976d2;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  
+  .course-card-top .MuiStack-root,
+  .course-card-top .icon-actions {
+    flex-shrink: 0;
+  }
+  
+  .course-percent {
+    font-size: 1rem;
+    color: #388e3c;
+    font-weight: 500;
+  }
+  
+  @media (max-width: 600px) {
+    .course-card {
+      width: calc(50% - 10px);
+      height: 110px;
+    }
+  }
+  @media (max-width: 420px) {
+    .course-card {
+      width: 100%;
+    }
+  }
+  
