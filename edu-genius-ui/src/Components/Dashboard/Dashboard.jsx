@@ -16,7 +16,6 @@ import {
   Tooltip,
 } from "@mui/material";
 import AddCircleOutlineIcon from "@mui/icons-material/AddCircleOutline";
-// >>> NEW
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
 import axios from "axios";
@@ -29,30 +28,20 @@ const API_BASE =
 const Dashboard = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-
   const [user, setUser] = useState(null);
   const [chatHistory, setChatHistory] = useState([]);
-
-  // Courses from backend (replaces hardcoded defaults)
   const [courses, setCourses] = useState([]);
-
-  // Add-course dialog state
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [newCourseName, setNewCourseName] = useState("");
   const [newCoursePercent, setNewCoursePercent] = useState("");
-
   const [nameError, setNameError] = useState("");
   const [percentError, setPercentError] = useState("");
-
-  // >>> NEW — edit dialog state
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [editCourse, setEditCourse] = useState(null); // course object being edited
   const [editName, setEditName] = useState("");
   const [editPercent, setEditPercent] = useState("");
   const [editNameError, setEditNameError] = useState("");
   const [editPercentError, setEditPercentError] = useState("");
-
-  // >>> NEW — delete confirm
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const [deleteCourse, setDeleteCourse] = useState(null);
 
@@ -63,7 +52,6 @@ const Dashboard = () => {
     return token ? { Authorization: `Bearer ${token}` } : {};
   };
 
-  // ------- Fetch all courses (source of truth) -------
   const fetchCourses = async () => {
     try {
       const coursesRes = await axios.get(`${API_BASE}/courses`, {
@@ -71,7 +59,6 @@ const Dashboard = () => {
         timeout: 8000,
       });
 
-      // Support both API shapes: array or { courses: [...] }
       const raw = Array.isArray(coursesRes.data)
         ? coursesRes.data
         : coursesRes.data?.courses || [];
@@ -89,8 +76,6 @@ const Dashboard = () => {
       setError("Failed to fetch courses");
     }
   };
-
-  // Fetch user profile, chat history, and courses
   useEffect(() => {
     const fetchUserData = async () => {
       try {
@@ -100,15 +85,11 @@ const Dashboard = () => {
           setLoading(false);
           return;
         }
-
-        // User profile
         const profileResponse = await axios.get(`${API_BASE}/users/profile`, {
           headers: authHeaders(),
           timeout: 8000,
         });
         setUser(profileResponse.data);
-
-        // Chat conversations (best-effort)
         try {
           const chatResponse = await axios.get(
             `${API_BASE}/chat/conversations`,
@@ -118,8 +99,6 @@ const Dashboard = () => {
         } catch {
           setChatHistory([]);
         }
-
-        // Courses for this user (always sync from server)
         await fetchCourses();
 
         setLoading(false);
@@ -131,10 +110,8 @@ const Dashboard = () => {
     };
 
     fetchUserData();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Dialog open/close
   const openAddDialog = () => {
     setNewCourseName("");
     setNewCoursePercent("");
@@ -143,8 +120,6 @@ const Dashboard = () => {
     setIsAddOpen(true);
   };
   const closeAddDialog = () => setIsAddOpen(false);
-
-  // Add course (validates + persists)
   const handleAddCourse = async () => {
     let valid = true;
 
@@ -174,7 +149,6 @@ const Dashboard = () => {
       percent: Math.round(pct),
     };
 
-    // Optimistic UI update (append; do NOT replace existing items)
     setCourses((prev) => [...prev, optimistic]);
     closeAddDialog();
 
@@ -189,7 +163,6 @@ const Dashboard = () => {
         timeout: 8000,
       });
 
-      // After a successful save, always re-fetch the full list
       await fetchCourses();
       setError(null);
     } catch (e) {
@@ -199,12 +172,9 @@ const Dashboard = () => {
           e?.response?.data?.error ||
           "Failed to save course"
       );
-      // Revert optimistic add
       setCourses((prev) => prev.filter((c) => c._id !== optimistic._id));
     }
   };
-
-  // >>> NEW — open edit dialog prefilled
   const openEditDialog = (course) => {
     setEditCourse(course);
     setEditName(course.name || "");
@@ -219,7 +189,6 @@ const Dashboard = () => {
     setEditCourse(null);
   };
 
-  // >>> NEW — save edit (optimistic + sync)
   const handleSaveEdit = async () => {
     if (!editCourse) return;
 
@@ -244,8 +213,6 @@ const Dashboard = () => {
     }
 
     if (!valid) return;
-
-    // Guard against editing non-persisted temp items
     if (!editCourse._id || String(editCourse._id).startsWith("tmp_")) {
       setError("Please wait until the course is saved before editing it.");
       return;
@@ -256,8 +223,6 @@ const Dashboard = () => {
       name: editName.trim(),
       percent: Math.round(pct),
     };
-
-    // Optimistic update
     setCourses((prev) => prev.map((c) => (c._id === updated._id ? updated : c)));
     closeEditDialog();
 
@@ -279,12 +244,10 @@ const Dashboard = () => {
           e?.response?.data?.error ||
           "Failed to update course"
       );
-      // Re-fetch to rollback to server state
       await fetchCourses();
     }
   };
 
-  // >>> NEW — delete flow
   const openDeleteDialog = (course) => {
     setDeleteCourse(course);
     setIsDeleteOpen(true);
@@ -297,17 +260,13 @@ const Dashboard = () => {
   const handleConfirmDelete = async () => {
     if (!deleteCourse) return;
 
-    // Guard for temp items
     if (!deleteCourse._id || String(deleteCourse._id).startsWith("tmp_")) {
-      // Just remove locally
       setCourses((prev) => prev.filter((c) => c._id !== deleteCourse._id));
       closeDeleteDialog();
       return;
     }
-
-    // Optimistic remove
     const removedId = deleteCourse._id;
-    const snapshot = courses; // keep snapshot to rollback
+    const snapshot = courses; 
     setCourses((prev) => prev.filter((c) => c._id !== removedId));
     closeDeleteDialog();
 
@@ -326,7 +285,6 @@ const Dashboard = () => {
           e?.response?.data?.error ||
           "Failed to delete course"
       );
-      // Rollback
       setCourses(snapshot);
     }
   };
@@ -536,8 +494,6 @@ const Dashboard = () => {
           </Button>
         </DialogActions>
       </Dialog>
-
-      {/* >>> NEW — Edit Course dialog */}
       <Dialog open={isEditOpen} onClose={closeEditDialog} fullWidth maxWidth="sm">
         <DialogTitle>Edit course</DialogTitle>
         <DialogContent sx={{ pt: 2 }}>
@@ -569,8 +525,6 @@ const Dashboard = () => {
           </Button>
         </DialogActions>
       </Dialog>
-
-      {/* >>> NEW — Delete confirm dialog */}
       <Dialog open={isDeleteOpen} onClose={closeDeleteDialog} fullWidth maxWidth="xs">
         <DialogTitle>Delete course?</DialogTitle>
         <DialogContent>

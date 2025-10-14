@@ -1,13 +1,11 @@
 const prisma = require('../lib/prisma');
 
-// helper: map Prisma object to legacy Mongoose-ish shape
 const toLegacy = (c) => {
   if (!c) return c;
   const { id, ...rest } = c;
   return { _id: id, ...rest };
 };
 
-// helper: normalize input
 const normalizeCoursePayload = (body = {}) => {
   const name = (body.name ?? '').trim();
   const percentRaw = body.percent;
@@ -17,7 +15,6 @@ const normalizeCoursePayload = (body = {}) => {
   return { name, percent };
 };
 
-// GET /courses
 exports.listCourses = async (req, res) => {
   try {
     const courses = await prisma.course.findMany({
@@ -31,7 +28,6 @@ exports.listCourses = async (req, res) => {
   }
 };
 
-// POST /courses
 exports.createCourse = async (req, res) => {
   try {
     const { name, percent } = normalizeCoursePayload(req.body);
@@ -52,7 +48,6 @@ exports.createCourse = async (req, res) => {
   }
 };
 
-// PATCH/PUT /courses/:id   (also accept :_id)
 exports.updateCourse = async (req, res) => {
   try {
     const id = req.params.id || req.params._id || req.body.id || req.body._id;
@@ -69,7 +64,6 @@ exports.updateCourse = async (req, res) => {
       return res.status(400).json({ error: 'No fields to update' });
     }
 
-    // enforce ownership via updateMany then fetch
     const result = await prisma.course.updateMany({
       where: { id, userId: String(req.user) },
       data,
@@ -87,7 +81,6 @@ exports.updateCourse = async (req, res) => {
   }
 };
 
-// DELETE /courses/:id   (also accept :_id)
 exports.deleteCourse = async (req, res) => {
   try {
     const id = req.params.id || req.params._id || req.body.id || req.body._id;
