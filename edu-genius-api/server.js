@@ -39,7 +39,7 @@ connectToDB()
     app.use("/users", userRoutes);
     app.use("/chat", chatRoutes);
     app.use("/courses", courseRoutes);
-    app.get("/health", (_req, res) => res.json({ ok: true }));
+
 
     app.use((_req, res) => res.status(404).json({ error: "Not Found" }));
 
