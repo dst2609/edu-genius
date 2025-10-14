@@ -1,39 +1,63 @@
+// server.js
 require("dotenv").config();
-const cors = require("cors");
-const express = require("express");
-const morgan = require("morgan");
-const mongoose = require("mongoose");                 
 
-const { rateLimiter } = require("./security/rateSecurity");
-const { connectToDB, createUsersCollection } = require("./db/database.js");
+const express = require("express");
+const cors = require("cors");
+
+// ✅ Prisma singleton (replaces mongoose usage for Course)
+const prisma = require("./lib/prisma");
+
+// ✅ Keep your native driver bootstrap if users/chat still need it
+// (If you no longer use the native driver, you can delete these two lines)
+const { connectToDB, createUsersCollection } = require("./db/database");
+
+const userRoutes = require("./routes/userRoutes");
+const chatRoutes = require("./routes/chatRoutes");
+const courseRoutes = require("./routes/courseRoutes");
 
 const app = express();
 
-// middleware
-app.use(morgan("dev"));
+// ----- middleware -----
 app.use(cors());
-app.use(express.json());                             
+app.use(express.json({ limit: "1mb" }));
 
-// ⬅ connect Mongoose for Course model
-mongoose
-  .connect(process.env.MONGO_URI, {
-    useNewUrlParser: true,
-    useUnifiedTopology: true,
-    dbName: "EduGenius",
+// Optional: quick Prisma connectivity check (MongoDB-friendly)
+(async () => {
+  try {
+    await prisma.$runCommandRaw({ ping: 1 });
+    console.log("✅ Prisma connected to MongoDB");
+  } catch (err) {
+    console.error("❌ Prisma connection failed:", err);
+    process.exit(1);
+  }
+})();
+
+// ----- database + server start -----
+// If you're still using the native driver for users/chat, keep this.
+// Otherwise, you can remove connectToDB/createUsersCollection and start app directly.
+connectToDB()
+  .then(async () => {
+    try {
+      await createUsersCollection();
+    } catch (e) {
+      console.warn("createUsersCollection warning:", e?.message || e);
+    }
+
+    // ----- routes -----
+    app.use("/users", userRoutes);
+    app.use("/chat", chatRoutes);
+    app.use("/courses", courseRoutes); // now backed by Prisma
+
+    // health check
+    app.get("/health", (_req, res) => res.json({ ok: true }));
+
+    // 404
+    app.use((_req, res) => res.status(404).json({ error: "Not Found" }));
+
+    const PORT = process.env.PORT || 3000;
+    app.listen(PORT, () => console.log(`🚀 Server listening on port ${PORT}`));
   })
-  .then(() => console.log("Mongoose connected"))
-  .catch((err) => console.error("Mongoose connection error:", err));
-
-connectToDB().then(() => {
-  createUsersCollection();
-
-  const userRoutes = require("./routes/userRoutes");
-  const chatRoutes = require("./routes/chatRoutes");
-  const courseRoutes = require("./routes/courseRoutes"); 
-
-  app.use("/users", userRoutes);
-  app.use("/chat", chatRoutes);
-  app.use("/courses", courseRoutes);                    
-
-  app.listen(3000, () => console.log("Server started on port 3000"));
-});
+  .catch((err) => {
+    console.error("Failed to initialize DB:", err);
+    process.exit(1);
+  });
