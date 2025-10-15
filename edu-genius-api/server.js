@@ -20,7 +20,7 @@ const app = express();
 app.use(cors());
 app.use(express.json({ limit: "1mb" }));
 app.use(morgan("dev"));
-app.use(rateLimiter); // optional security
+// app.use(rateLimiter); // optional security
 
 // ---------- DATABASE CONNECTIONS ----------
 (async () => {
