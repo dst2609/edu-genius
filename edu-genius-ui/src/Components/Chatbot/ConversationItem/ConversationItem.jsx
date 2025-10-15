@@ -7,6 +7,7 @@ export default function ConversationItem({
   onDelete,
   onRename,           // (title) => void
   onRegenerateTitle,  // () => void
+  onAddCourse,        
 }) {
   const [isEditing, setIsEditing] = useState(false);
   const [draft, setDraft] = useState(convo.title || "New Chat");
@@ -23,7 +24,6 @@ export default function ConversationItem({
     }
   }, [isEditing, convo.title]);
 
-  // Close context menu on outside click
   useEffect(() => {
     const onDocClick = (e) => {
       if (!containerRef.current?.contains(e.target)) setMenuOpen(false);
@@ -105,14 +105,27 @@ export default function ConversationItem({
       </button>
 
       {!isEditing && (
-        <>
+        <div className="flex items-center gap-2 ml-2">
+          {/* Add Course icon */}
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onAddCourse && onAddCourse(convo);  // ✅ trigger parent callback
+            }}
+            className="text-blue-500 hover:text-blue-700 text-xs rounded-full border border-blue-400 h-5 w-5 flex items-center justify-center"
+            title="Add Course"
+            aria-label="Add Course"
+          >
+            +
+          </button>
+
           {/* Rename icon */}
           <button
             onClick={(e) => {
               e.stopPropagation();
               setIsEditing(true);
             }}
-            className="ml-2 text-neutral-500 hover:text-neutral-700 text-xs"
+            className="text-neutral-500 hover:text-neutral-700 text-xs"
             title="Rename"
             aria-label="Rename"
           >
@@ -125,24 +138,13 @@ export default function ConversationItem({
               e.stopPropagation();
               onDelete && onDelete();
             }}
-            className="ml-2 text-red-500 hover:text-red-700 text-xs"
+            className="text-red-500 hover:text-red-700 text-xs"
             title="Delete"
             aria-label="Delete"
           >
             ✕
           </button>
-           {/* Add Course icon */}
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-            }}
-            className="ml-2 text-blue-500 hover:text-red-700 text-xs"
-            title="Add Course"
-            aria-label="Add Course"
-          >
-            +
-          </button>
-        </>
+        </div>
       )}
 
       {/* Context menu */}
