@@ -1,32 +1,20 @@
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import {
-  Box,
-  Typography,
-  CircularProgress,
-  Alert,
-  Button,
-} from "@mui/material";
+import { Box, CircularProgress, Alert, Button } from "@mui/material";
 import axios from "axios";
-import "./Dashboard.css";
+import "../Dashboard/Dashboard.css"; 
+import CoursesSection from "../Courses/CoursesSection.jsx";
+import { API_BASE, authHeaders } from "../../api/client";
 
 const Dashboard = () => {
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [user, setUser] = useState(null);
+  const [error, setError]   = useState(null);
+  const [user, setUser]     = useState(null);
   const [chatHistory, setChatHistory] = useState([]);
   const navigate = useNavigate();
 
-  // Example courses
-  const courses = [
-    { name: "DSA (CMPE 126)", percent: 86 },
-    { name: "Mathematical Engineering", percent: 93 },
-    { name: "Computer Architecture", percent: 81 },
-  ];
-
-  // Fetch user profile and chat history
   useEffect(() => {
-    const fetchUserData = async () => {
+    (async () => {
       try {
         const token = localStorage.getItem("token");
         if (!token) {
@@ -34,32 +22,28 @@ const Dashboard = () => {
           setLoading(false);
           return;
         }
-
-        // Fetch user profile
-        const profileResponse = await axios.get("http://localhost:3000/users/profile", {
-          headers: { Authorization: `Bearer ${token}` },
+        const profileRes = await axios.get(`${API_BASE}/users/profile`, {
+          headers: authHeaders(),
+          timeout: 8000,
         });
-        setUser(profileResponse.data);
-
-        // Fetch chat conversations
+        setUser(profileRes.data);
         try {
-          const chatResponse = await axios.get("http://localhost:3000/chat/conversations", {
-            headers: { Authorization: `Bearer ${token}` },
+          const chatRes = await axios.get(`${API_BASE}/chat/conversations`, {
+            headers: authHeaders(),
+            timeout: 8000,
           });
-          setChatHistory(chatResponse.data.conversations.slice(0, 5)); // Get latest 5 conversations
-        } catch (chatErr) {
-          console.log("No chat history available or error fetching conversations");
+          setChatHistory((chatRes.data?.conversations || []).slice(0, 5));
+        } catch {
           setChatHistory([]);
         }
 
         setLoading(false);
       } catch (err) {
+        console.error(err);
         setError(err.response?.data?.message || "Failed to fetch user data");
         setLoading(false);
       }
-    };
-
-    fetchUserData();
+    })();
   }, []);
 
   if (loading) {
@@ -70,15 +54,11 @@ const Dashboard = () => {
     );
   }
 
-  if (error) {
+  if (error && !user) {
     return (
       <Box sx={{ mt: 4, maxWidth: 800, mx: "auto" }}>
         <Alert severity="error">{error}</Alert>
-        <Button
-          variant="contained"
-          sx={{ mt: 2 }}
-          onClick={() => navigate("/login")}
-        >
+        <Button variant="contained" sx={{ mt: 2 }} onClick={() => navigate("/login")}>
           Go to Login
         </Button>
       </Box>
@@ -87,7 +67,14 @@ const Dashboard = () => {
 
   return (
     <div className="dashboard-container" style={{ margin: "40px 0 0 0" }}>
+      {/* page-level error (non-blocking) */}
+      {error && user && (
+        <Alert severity="error" sx={{ mb: 2, maxWidth: 1000, margin: "0 auto" }}>
+          {error}
+        </Alert>
+      )}
       <div className="dashboard-left-column">
+        {/* Profile */}
         <div className="dashboard-profile">
           <h2 style={{ fontWeight: "bold", fontSize: "1.8rem" }}>Student Details</h2>
           <div className="profile-field">
@@ -110,37 +97,32 @@ const Dashboard = () => {
             <span className="profile-label">Region:</span>{" "}
             <span className="profile-value">{user?.region || "N/A"}</span>
           </div>
-          <Button
-            variant="contained"
-            sx={{ mt: 2, width: "100%" }}
-            onClick={() => navigate("/profile")}
-          >
+          <Button variant="contained" sx={{ mt: 2, width: "100%" }} onClick={() => navigate("/profile")}>
             View Profile
           </Button>
         </div>
 
+        {/* Recent Chat History */}
         <div className="dashboard-chat-history">
           <h2>Recent Chat History</h2>
-          <Button
-            variant="contained"
-            sx={{ mb: 2, width: "100%" }}
-            onClick={() => navigate("/chat")}
-          >
+          <Button variant="contained" sx={{ mb: 2, width: "100%" }} onClick={() => navigate("/chat")}>
             New Chat
           </Button>
+
           {chatHistory.length > 0 ? (
             <div className="chat-history-list">
               {chatHistory.map((conversation, idx) => (
-                <div 
-                  className="chat-history-item" 
+                <div
+                  className="chat-history-item"
                   key={conversation.id || idx}
                   onClick={() => navigate(`/chat?conversationId=${conversation.id}`)}
                 >
-                  <div className="chat-preview">
-                    {conversation.title || "Untitled Conversation"}
-                  </div>
+                  <div className="chat-preview">{conversation.title || "Untitled Conversation"}</div>
                   <div className="chat-date">
-                    {new Date(conversation.updatedAt || conversation.createdAt).toLocaleDateString()}
+                    {(() => {
+                      const d = new Date(conversation.updatedAt || conversation.createdAt);
+                      return isNaN(d) ? "" : d.toLocaleDateString();
+                    })()}
                   </div>
                 </div>
               ))}
@@ -148,29 +130,14 @@ const Dashboard = () => {
           ) : (
             <div className="no-chat-history">
               <p>No chat history available. Start a conversation with the ChatBot!</p>
-              <Button
-                variant="outlined"
-                sx={{ mt: 1 }}
-                onClick={() => navigate("/chat")}
-              >
+              <Button variant="outlined" sx={{ mt: 1 }} onClick={() => navigate("/chat")}>
                 Start Chatting
               </Button>
             </div>
           )}
         </div>
       </div>
-
-      <div className="dashboard-courses">
-        <h2>Courses & Test Scores</h2>
-        <div className="courses-list">
-          {courses.map((course, idx) => (
-            <div className="course-card" key={idx}>
-              <div className="course-title">{course.name}</div>
-              <div className="course-percent">{course.percent}%</div>
-            </div>
-          ))}
-        </div>
-      </div>
+      <CoursesSection onError={setError} />
     </div>
   );
 };

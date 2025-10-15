@@ -40,5 +40,5 @@ __pycache__/
 *.egg-info/
 *.egg
 .envrc
-edu_instruct_dataset.csv
 dataset.csv
+edu_instruct_dataset.csv
