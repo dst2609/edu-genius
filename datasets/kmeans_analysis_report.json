@@ -1,0 +1,284 @@
+{
+  "dataset_info": {
+    "filename": "cmpe_126.csv",
+    "total_pairs": 5223
+  },
+  "basic_statistics": {
+    "total_pairs": 5223,
+    "avg_instruction_length": 40.38100708405131,
+    "avg_output_length": 77.26632203714341,
+    "avg_instruction_words": 7.0536090369519435,
+    "avg_output_words": 12.151636990235497,
+    "min_instruction_length": 17,
+    "max_instruction_length": 76,
+    "min_output_length": 37,
+    "max_output_length": 224
+  },
+  "question_categories": {
+    "implementation": 329,
+    "explanation": 646,
+    "comparison": 22,
+    "complexity": 461,
+    "debugging": 57,
+    "design": 472,
+    "concept": 469,
+    "code_analysis": 0
+  },
+  "topic_distribution": {
+    "Arrays": 934,
+    "Linked Lists": 935,
+    "Stacks": 450,
+    "Queues": 443,
+    "Trees": 647,
+    "Graphs": 556,
+    "Sorting": 918,
+    "Searching": 729,
+    "Recursion": 463,
+    "Dynamic Programming": 308,
+    "OOP": 409,
+    "Pointers": 781,
+    "Memory Management": 409,
+    "STL": 503,
+    "Complexity Analysis": 536,
+    "Hash Tables": 141,
+    "Heaps": 340,
+    "Other": 740
+  },
+  "code_patterns": {
+    "has_code": 471,
+    "has_class": 121,
+    "has_function": 903,
+    "has_loop": 1538,
+    "has_conditional": 992,
+    "has_pointer": 979,
+    "has_template": 26,
+    "has_stl": 1089,
+    "has_complexity": 536
+  },
+  "kmeans_clusters": {
+    "Cluster_0": {
+      "size": 712,
+      "percentage": "13.63%",
+      "top_terms": [
+        "time",
+        "sort",
+        "complexity",
+        "log",
+        "time complexity",
+        "elements",
+        "depending implementation",
+        "implementation",
+        "n\u00b2",
+        "depending",
+        "n\u00b2 depending",
+        "log n\u00b2",
+        "space",
+        "merge",
+        "array"
+      ],
+      "sample_instructions": [
+        "How do you measure algorithm running time in C++?",
+        "What is object-oriented design for simulation?",
+        "What is the time complexity of recursive factorial?",
+        "What is template metaprogramming?",
+        "What sorting algorithms are commonly implemented in C++?"
+      ]
+    },
+    "Cluster_1": {
+      "size": 465,
+      "percentage": "8.90%",
+      "top_terms": [
+        "data",
+        "operations access",
+        "data efficiently",
+        "specific operations",
+        "efficiently specific",
+        "structures organize",
+        "structure concept",
+        "store data",
+        "organize store",
+        "concept",
+        "explain data",
+        "access patterns",
+        "organize",
+        "efficiently",
+        "data structure"
+      ],
+      "sample_instructions": [
+        "What are applications of tries?",
+        "Explain data structure concept 191",
+        "Explain data structure concept 292",
+        "Explain data structure concept 221",
+        "Explain data structure concept 105"
+      ]
+    },
+    "Cluster_2": {
+      "size": 832,
+      "percentage": "15.93%",
+      "top_terms": [
+        "int",
+        "arr",
+        "array",
+        "class",
+        "myclass",
+        "member1",
+        "int arr",
+        "integer",
+        "use",
+        "element",
+        "iterator",
+        "specify iterator",
+        "specify",
+        "use erase",
+        "iterator key"
+      ],
+      "sample_instructions": [
+        "What is inheritance in C++?",
+        "How do constructors work in inheritance?",
+        "What are pointers in C++?",
+        "How are arrays and pointers related in C++?",
+        "What is dynamic memory allocation in C++?"
+      ]
+    },
+    "Cluster_3": {
+      "size": 773,
+      "percentage": "14.80%",
+      "top_terms": [
+        "node",
+        "value",
+        "left",
+        "search",
+        "height",
+        "array",
+        "right",
+        "enqueue",
+        "binary",
+        "root",
+        "binary search",
+        "bst",
+        "tree",
+        "queue",
+        "node value"
+      ],
+      "sample_instructions": [
+        "What is the difference between pass by value and reference?",
+        "How do you implement a template linked list in C++?",
+        "How do you implement insertAt() in a linked list?",
+        "How do you implement a destructor for linked list?",
+        "What is the purpose of NULL initialization in Node constructor?"
+      ]
+    },
+    "Cluster_4": {
+      "size": 312,
+      "percentage": "5.97%",
+      "top_terms": [
+        "dfs",
+        "level",
+        "graph",
+        "print",
+        "recursion",
+        "order",
+        "nodes",
+        "tracking",
+        "finish",
+        "use",
+        "algorithm",
+        "traversal",
+        "stack",
+        "recursion stack",
+        "dfs recursion"
+      ],
+      "sample_instructions": [
+        "How do you implement function overloading in C++?",
+        "How do you debug C++ programs effectively?",
+        "What are applications of queues in computer science?",
+        "What is depth-first search in graphs?",
+        "What is breadth-first search in graphs?"
+      ]
+    },
+    "Cluster_5": {
+      "size": 225,
+      "percentage": "4.31%",
+      "top_terms": [
+        "insert",
+        "container type",
+        "syntax depending",
+        "push syntax",
+        "depending container",
+        "syntax",
+        "container",
+        "type",
+        "push",
+        "depending",
+        "heap",
+        "min heap",
+        "kth largest",
+        "largest",
+        "min"
+      ],
+      "sample_instructions": [
+        "Insert 0 into vector",
+        "Insert 0 into map",
+        "Find kth largest element using heap where k=18",
+        "Insert 50 into vector",
+        "Insert 180 into set"
+      ]
+    },
+    "Cluster_6": {
+      "size": 355,
+      "percentage": "6.80%",
+      "top_terms": [
+        "position",
+        "list",
+        "linked list",
+        "linked",
+        "head",
+        "traverse",
+        "singly",
+        "singly linked",
+        "list position",
+        "head tail",
+        "tail",
+        "handle",
+        "pointers",
+        "adjust",
+        "adjust pointers"
+      ],
+      "sample_instructions": [
+        "What are the time complexities of linked list operations?",
+        "How do you handle edge cases in linked list operations?",
+        "What is the purpose of getNodeAt() helper function?",
+        "How do you handle edge cases in linked list removal?",
+        "What is the time complexity of linked list operations?"
+      ]
+    },
+    "Cluster_7": {
+      "size": 1549,
+      "percentage": "29.66%",
+      "top_terms": [
+        "return",
+        "dp",
+        "stack",
+        "check",
+        "base",
+        "size",
+        "push",
+        "pointer",
+        "recursive return",
+        "recursive",
+        "return recursive",
+        "lcs",
+        "operator",
+        "power",
+        "length"
+      ],
+      "sample_instructions": [
+        "Explain virtual functions in C++.",
+        "What is the difference between public and private inheritance?",
+        "How does polymorphism work with references in C++?",
+        "What is recursion in C++?",
+        "Write a recursive factorial function in C++."
+      ]
+    }
+  }
+}
