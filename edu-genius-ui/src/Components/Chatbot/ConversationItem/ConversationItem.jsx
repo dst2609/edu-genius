@@ -131,6 +131,17 @@ export default function ConversationItem({
           >
             ✕
           </button>
+           {/* Add Course icon */}
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+            }}
+            className="ml-2 text-blue-500 hover:text-red-700 text-xs"
+            title="Add Course"
+            aria-label="Add Course"
+          >
+            +
+          </button>
         </>
       )}
 
