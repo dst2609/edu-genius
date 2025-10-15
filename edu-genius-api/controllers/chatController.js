@@ -1,4 +1,3 @@
-//import model
 const {
   createConversation,
   listConversations,
@@ -9,17 +8,14 @@ const {
 
 const OpenAI = require("openai");
 
-// get the OpenAI api key from env file
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
-// chat handler function to handle chat prompts and response
 const chatHandler = async (req, res) => {
   const userId = req.user;
   const { prompt, conversationId, title } = req.body;
 
-  //check if prompt is  empty?
   if (!prompt) {
     return res.status(400).send("Prompt is empty - it is required");
   }
@@ -28,7 +24,6 @@ const chatHandler = async (req, res) => {
     return res.status(401).send("Unauthorized");
   }
 
-  // try to conenct to openAI API
   try {
     let activeConversationId = conversationId;
     let previousMessages = [];
@@ -49,16 +44,14 @@ const chatHandler = async (req, res) => {
       { role: "user", content: prompt },
     ];
 
-    // interact with OpenAI API
+
     const completion = await openai.chat.completions.create({
       model: "gpt-4o-mini",
       messages: messages,
     });
 
-    // process the response - specific to OpenAI Api resoponse
     const chatResponse = completion.choices[0].message.content.trim();
 
-    //new conversation id and save the chat message to DB
     const { chatMessage, conversation } = await saveChatMessage({
       conversationId: activeConversationId,
       userId,

@@ -33,3 +33,21 @@ model Conversation {
 
   @@map("conversations")
 }
+
+model Course {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId    String
+  name      String
+  percent   Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // simple index (ok)
+  @@index([userId])
+
+  // optional: compound index to speed “my courses, newest first”
+  @@index([userId, updatedAt(sort: Desc)])
+
+  // optional: keep the existing Mongo collection name if Mongoose used "courses"
+  @@map("courses")
+}
