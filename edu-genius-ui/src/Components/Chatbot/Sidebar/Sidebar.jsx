@@ -1,4 +1,5 @@
 import ConversationItem from "../ConversationItem/ConversationItem.jsx";
+
 export default function Sidebar({
   conversations,
   activeId,
@@ -7,6 +8,7 @@ export default function Sidebar({
   onDelete,
   onRename,
   onRegenerateTitle,
+  onAddCourse, // (conversationId, course) => void   ⟵ NEW
 }) {
   return (
     <aside className="w-64 border-r bg-white flex flex-col">
@@ -16,6 +18,7 @@ export default function Sidebar({
           onClick={onNewChat}
           className="rounded-full w-8 h-8 flex items-center justify-center bg-indigo-600 text-white hover:bg-indigo-700"
           title="New chat"
+          aria-label="New chat"
         >
           +
         </button>
@@ -36,8 +39,9 @@ export default function Sidebar({
               active={c.id === activeId}
               onClick={() => onSelect(c.id)}
               onDelete={() => onDelete(c.id)}
-              onRename={(title) => onRename(c.id, title)} // pass title up
-              onRegenerateTitle={() => onRegenerateTitle(c.id)} // menu action
+              onRename={(title) => onRename(c.id, title)}
+              onRegenerateTitle={() => onRegenerateTitle(c.id)}
+              onAddCourse={(course) => onAddCourse && onAddCourse(c.id, course)} // ⟵ NEW
             />
           ))
         )}

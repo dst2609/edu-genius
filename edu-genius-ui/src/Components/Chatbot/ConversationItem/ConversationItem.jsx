@@ -1,17 +1,29 @@
 import React, { useEffect, useRef, useState } from "react";
 
+const API_BASE_URL = (
+  import.meta.env.VITE_API_BASE_URL || "http://localhost:3000"
+).replace(/\/+$/, "");
+
 export default function ConversationItem({
   convo,
   active,
   onClick,
   onDelete,
-  onRename,           // (title) => void
-  onRegenerateTitle,  // () => void
-  onAddCourse,        
+  onRename,            // (title) => void
+  onRegenerateTitle,   // () => void
+  onAddCourse,         // (course) => void  // optional: called when a course is selected
 }) {
   const [isEditing, setIsEditing] = useState(false);
   const [draft, setDraft] = useState(convo.title || "New Chat");
+
+  // existing context menu (right-click)
   const [menuOpen, setMenuOpen] = useState(false);
+
+  // NEW: plus dropdown state + data
+  const [addOpen, setAddOpen] = useState(false);
+  const [courses, setCourses] = useState([]);
+  const [loadingCourses, setLoadingCourses] = useState(false);
+  const [coursesError, setCoursesError] = useState(null);
 
   const containerRef = useRef(null);
   const inputRef = useRef(null);
@@ -24,9 +36,13 @@ export default function ConversationItem({
     }
   }, [isEditing, convo.title]);
 
+  // Close menus on outside click
   useEffect(() => {
     const onDocClick = (e) => {
-      if (!containerRef.current?.contains(e.target)) setMenuOpen(false);
+      if (!containerRef.current?.contains(e.target)) {
+        setMenuOpen(false);
+        setAddOpen(false);
+      }
     };
     document.addEventListener("click", onDocClick);
     return () => document.removeEventListener("click", onDocClick);
@@ -42,6 +58,42 @@ export default function ConversationItem({
     setDraft(convo.title || "New Chat");
   };
 
+  // Fetch courses when opening the "+" dropdown
+  const fetchCourses = async () => {
+    try {
+      setLoadingCourses(true);
+      setCoursesError(null);
+      const token = localStorage.getItem("token");
+      const res = await fetch(`${API_BASE_URL}/courses`, {
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+      });
+      if (!res.ok) {
+        const msg = await res.text();
+        throw new Error(msg || `Failed to fetch courses (${res.status})`);
+      }
+      const data = await res.json();
+      setCourses(Array.isArray(data?.courses) ? data.courses : []);
+    } catch (err) {
+      setCoursesError(err?.message || "Failed to fetch courses");
+      setCourses([]);
+    } finally {
+      setLoadingCourses(false);
+    }
+  };
+
+  const toggleAddMenu = async (e) => {
+    e.stopPropagation();
+    const next = !addOpen;
+    setAddOpen(next);
+    if (next) {
+      setMenuOpen(false);
+      await fetchCourses();
+    }
+  };
+
   return (
     <div
       ref={containerRef}
@@ -52,6 +104,7 @@ export default function ConversationItem({
       title={convo.title || "New Chat"}
       onContextMenu={(e) => {
         e.preventDefault();
+        setAddOpen(false);
         setMenuOpen(true);
       }}
     >
@@ -96,7 +149,9 @@ export default function ConversationItem({
           </div>
         ) : (
           <>
-            <div className="text-sm font-medium truncate">{convo.title || "New Chat"}</div>
+            <div className="text-sm font-medium truncate">
+              {convo.title || "New Chat"}
+            </div>
             <div className="text-[11px] text-neutral-500">
               {new Date(convo.updatedAt || Date.now()).toLocaleString()}
             </div>
@@ -105,14 +160,11 @@ export default function ConversationItem({
       </button>
 
       {!isEditing && (
-        <div className="flex items-center gap-2 ml-2">
-          {/* Add Course icon */}
+        <div className="ml-2 flex items-center gap-2">
+          {/* + Add Course dropdown trigger */}
           <button
-            onClick={(e) => {
-              e.stopPropagation();
-              onAddCourse && onAddCourse(convo);  // ✅ trigger parent callback
-            }}
-            className="text-blue-500 hover:text-blue-700 text-xs rounded-full border border-blue-400 h-5 w-5 flex items-center justify-center"
+            onClick={toggleAddMenu}
+            className="text-blue-600 hover:text-blue-800 text-xs rounded-full border border-blue-400 h-5 w-5 flex items-center justify-center"
             title="Add Course"
             aria-label="Add Course"
           >
@@ -123,6 +175,7 @@ export default function ConversationItem({
           <button
             onClick={(e) => {
               e.stopPropagation();
+              setAddOpen(false);
               setIsEditing(true);
             }}
             className="text-neutral-500 hover:text-neutral-700 text-xs"
@@ -136,6 +189,7 @@ export default function ConversationItem({
           <button
             onClick={(e) => {
               e.stopPropagation();
+              setAddOpen(false);
               onDelete && onDelete();
             }}
             className="text-red-500 hover:text-red-700 text-xs"
@@ -147,7 +201,51 @@ export default function ConversationItem({
         </div>
       )}
 
-      {/* Context menu */}
+      {/* + Dropdown menu */}
+      {addOpen && !isEditing && (
+        <div className="absolute right-2 top-8 z-20 w-56 rounded-md border bg-white shadow-lg">
+          <div className="px-3 py-2 border-b text-xs font-semibold text-neutral-600">
+            Select a Course
+          </div>
+
+          {loadingCourses && (
+            <div className="px-3 py-3 text-sm text-neutral-500">Loading…</div>
+          )}
+
+          {coursesError && !loadingCourses && (
+            <div className="px-3 py-3 text-sm text-red-600">
+              {coursesError}
+            </div>
+          )}
+
+          {!loadingCourses && !coursesError && courses.length === 0 && (
+            <div className="px-3 py-3 text-sm text-neutral-500">
+              No courses found
+            </div>
+          )}
+
+          {!loadingCourses && !coursesError && courses.length > 0 && (
+            <div className="max-h-64 overflow-auto py-1">
+              {courses.map((c) => (
+                <button
+                  key={c._id}
+                  className="w-full text-left px-3 py-2 hover:bg-neutral-100 text-sm"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setAddOpen(false);
+                    onAddCourse && onAddCourse(c); // notify parent
+                  }}
+                  title={c.name}
+                >
+                  {c.name}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Context (right-click) menu */}
       {menuOpen && !isEditing && (
         <div className="absolute right-2 top-8 z-10 w-44 rounded-md border bg-white shadow-lg">
           <button
