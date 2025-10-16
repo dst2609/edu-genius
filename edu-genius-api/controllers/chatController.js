@@ -4,6 +4,7 @@ const {
   getChatHistory,
   saveChatMessage,
   deleteConversation,
+  updateConversationCourse,
 } = require("../models/chatModel");
 
 const OpenAI = require("openai");
@@ -87,22 +88,27 @@ const chatHandler = async (req, res) => {
 
 const createConversationHandler = async (req, res) => {
   const userId = req.user;
-  const { title } = req.body;
+  const { title, courseId, courseName } = req.body;
 
   if (!userId) {
     return res.status(401).send("Unauthorized");
   }
 
   try {
-    const conversation = await createConversation(userId, title);
+    console.log('Creating conversation with:', { title, courseId, courseName });
+    const conversation = await createConversation(userId, title, { courseId, courseName });
+    console.log('Created conversation:', conversation);
+    
     res.status(201).json({
       id: conversation.id,
       title: conversation.title,
+      courseId: conversation.courseId,
+      courseName: conversation.courseName,
       createdAt: conversation.createdAt,
       updatedAt: conversation.updatedAt,
     });
   } catch (error) {
-    console.error(error);
+    console.error('Error creating conversation:', error);
     res.status(500).send("Unable to create conversation");
   }
 };
@@ -178,10 +184,28 @@ const deleteConversationHandler = async (req, res) => {
   }
 };
 
+const updateConversationCourseHandler = async (req, res) => {
+  try {
+    const userId = req.user; // from auth middleware
+    const { id } = req.params;
+    const { courseId, courseName } = req.body || {};
+
+    if (!id) return res.status(400).json({ message: "conversation id is required" });
+
+    const updated = await updateConversationCourse(id, userId, { courseId, courseName });
+    return res.status(200).json({ conversation: updated });
+  } catch (error) {
+    console.error(error);
+    const status = error?.status || 500;
+    return res.status(status).json({ message: error?.message || "Unable to update conversation" });
+  }
+};
+
 module.exports = {
   chatHandler,
   createConversationHandler,
   listConversationsHandler,
   getChatHistoryHandler,
   deleteConversationHandler,
+  updateConversationCourseHandler, 
 };

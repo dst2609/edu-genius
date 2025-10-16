@@ -13,7 +13,8 @@ export async function listCourses() {
 }
 
 export async function createCourse(payload) {
-  await http.post("/courses", payload);
+  const { data } = await http.post("/courses", payload);
+  return { course: normalize(data.course || data) };
 }
 
 export async function updateCourse(id, payload) {

@@ -6,23 +6,24 @@ const DEFAULT_TITLE = "New Chat";
 
 const truncateTitle = (prompt = "") => {
   const trimmed = prompt.trim();
-  if (!trimmed) {
-    return DEFAULT_TITLE;
-  }
-
-  if (trimmed.length <= 60) {
-    return trimmed;
-  }
-
+  if (!trimmed) return DEFAULT_TITLE;
+  if (trimmed.length <= 60) return trimmed;
   return `${trimmed.slice(0, 57)}…`;
 };
 
-const createConversation = async (userId, title = DEFAULT_TITLE) => {
+/**
+ * Create a conversation.
+ * Optionally pass { courseId, courseName } if you want to create it already linked to a course.
+ */
+const createConversation = async (userId, title = DEFAULT_TITLE, opts = {}) => {
   try {
     const conversation = await prisma.conversation.create({
       data: {
         userId,
-        title: title.trim() || DEFAULT_TITLE,
+        title: (title || "").trim() || DEFAULT_TITLE,
+        // NEW (optional on create)
+        courseId: opts.courseId || null,
+        courseName: opts.courseName || null,
       },
     });
     return conversation;
@@ -32,6 +33,10 @@ const createConversation = async (userId, title = DEFAULT_TITLE) => {
   }
 };
 
+/**
+ * List conversations for a user.
+ * Now returns courseId / courseName as well.
+ */
 const listConversations = async (userId) => {
   try {
     const conversations = await prisma.conversation.findMany({
@@ -43,6 +48,9 @@ const listConversations = async (userId) => {
       id: conversation.id,
       title: conversation.title,
       updatedAt: conversation.updatedAt,
+      // NEW
+      courseId: conversation.courseId || null,
+      courseName: conversation.courseName || null,
     }));
   } catch (error) {
     console.error("Error listing conversations:", error);
@@ -50,6 +58,9 @@ const listConversations = async (userId) => {
   }
 };
 
+/**
+ * Fetch chat history for a conversation, verifying ownership.
+ */
 const getChatHistory = async (conversationId, userId) => {
   try {
     const conversation = await prisma.conversation.findFirst({
@@ -72,6 +83,9 @@ const getChatHistory = async (conversationId, userId) => {
   }
 };
 
+/**
+ * Save a chat message and (optionally) update the conversation title on first message.
+ */
 const saveChatMessage = async ({ conversationId, userId, prompt, response }) => {
   try {
     const result = await prisma.$transaction(async (tx) => {
@@ -94,16 +108,13 @@ const saveChatMessage = async ({ conversationId, userId, prompt, response }) => 
         },
       });
 
-      const shouldUpdateTitle = !conversation.title || conversation.title === DEFAULT_TITLE;
-      const title = shouldUpdateTitle
-        ? truncateTitle(prompt)
-        : conversation.title;
+      const shouldUpdateTitle =
+        !conversation.title || conversation.title === DEFAULT_TITLE;
+      const title = shouldUpdateTitle ? truncateTitle(prompt) : conversation.title;
 
       const updatedConversation = await tx.conversation.update({
         where: { id: conversationId },
-        data: {
-          title,
-        },
+        data: { title },
       });
 
       return { chatMessage, conversation: updatedConversation };
@@ -116,6 +127,9 @@ const saveChatMessage = async ({ conversationId, userId, prompt, response }) => 
   }
 };
 
+/**
+ * Delete a conversation and its messages.
+ */
 const deleteConversation = async (conversationId, userId) => {
   try {
     return await prisma.$transaction(async (tx) => {
@@ -143,10 +157,51 @@ const deleteConversation = async (conversationId, userId) => {
   }
 };
 
+/**
+ * NEW: Set or clear a course on a conversation.
+ * Pass { courseId, courseName } to set; pass { courseId: null, courseName: null } to clear.
+ */
+const updateConversationCourse = async (conversationId, userId, { courseId, courseName }) => {
+  try {
+    const conversation = await prisma.conversation.findFirst({
+      where: { id: conversationId, userId },
+    });
+
+    if (!conversation) {
+      const err = new Error("Conversation not found");
+      err.status = 404;
+      throw err;
+    }
+
+    const updated = await prisma.conversation.update({
+      where: { id: conversationId },
+      data: {
+        courseId: courseId || null,
+        courseName: courseName || null,
+      },
+    });
+
+    return {
+      id: updated.id,
+      userId: updated.userId,
+      title: updated.title,
+      courseId: updated.courseId || null,
+      courseName: updated.courseName || null,
+      createdAt: updated.createdAt,
+      updatedAt: updated.updatedAt,
+    };
+  } catch (error) {
+    console.error("Error updating conversation course:", error);
+    throw error;
+  }
+};
+
 module.exports = {
   createConversation,
   listConversations,
   getChatHistory,
   saveChatMessage,
   deleteConversation,
+  // NEW
+  updateConversationCourse,
 };
