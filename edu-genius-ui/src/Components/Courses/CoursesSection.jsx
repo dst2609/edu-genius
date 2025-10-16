@@ -95,14 +95,14 @@ export default function CoursesSection({ onError }) {
     try {
       const response = await fetch(`${API_BASE}/chat/conversations`, {
         headers: {
-          Authorization: `Bearer ${localStorage.getItem('token')}`,
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
         },
       });
       const data = await response.json();
-      setExistingChats(data.conversations.filter(chat => !chat.courseId));
+      setExistingChats(data.conversations.filter((chat) => !chat.courseId));
     } catch (error) {
-      console.error('Failed to fetch chats:', error);
-      reportError('Failed to fetch existing chats');
+      console.error("Failed to fetch chats:", error);
+      reportError("Failed to fetch existing chats");
     }
   };
 
@@ -143,9 +143,12 @@ export default function CoursesSection({ onError }) {
 
     try {
       // Create the course
-      const courseResponse = await createCourse({ name: optimistic.name, percent: optimistic.percent });
+      const courseResponse = await createCourse({
+        name: optimistic.name,
+        percent: optimistic.percent,
+      });
       if (!courseResponse?.course?._id) {
-        throw new Error('Invalid course response from server');
+        throw new Error("Invalid course response from server");
       }
       const courseId = courseResponse.course._id;
 
@@ -156,64 +159,76 @@ export default function CoursesSection({ onError }) {
           courseId: courseId,
           courseName: optimistic.name,
         };
-        console.log('Creating new chat with details:', chatDetails);
-        
+        // console.log("Creating new chat with details:", chatDetails);
+
         const chatResponse = await fetch(`${API_BASE}/chat/conversations`, {
-          method: 'POST',
+          method: "POST",
           headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${localStorage.getItem('token')}`,
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
           },
           body: JSON.stringify(chatDetails),
         });
-        
+
         if (!chatResponse.ok) {
           const errorData = await chatResponse.json();
-          console.error('Failed to create chat:', errorData);
-          throw new Error(errorData.message || 'Failed to create chat');
+          console.error("Failed to create chat:", errorData);
+          throw new Error(errorData.message || "Failed to create chat");
         }
 
         // Log the response for debugging
         const chatData = await chatResponse.json();
-        console.log('New chat created successfully:', chatData);
+        // console.log("New chat created successfully:", chatData);
       }
 
       // Associate selected existing chats with the course
       if (selectedChats.length > 0) {
-        console.log('Linking existing chats:', { selectedChats, courseId, courseName: optimistic.name });
-        await Promise.all(selectedChats.map(async chatId => {
-          console.log(`Updating chat ${chatId} with course ${courseId}`);
-          const response = await fetch(`${API_BASE}/chat/conversations/${chatId}`, {
-            method: 'PUT',
-            headers: {
-              'Content-Type': 'application/json',
-              Authorization: `Bearer ${localStorage.getItem('token')}`,
-            },
-            body: JSON.stringify({
-              title: `${optimistic.name} - Existing Chat`,  // optional: update title
-              courseId: courseId,
-              courseName: optimistic.name
-            }),
-          });
-          
-          if (!response.ok) {
-            const errorData = await response.json();
-            throw new Error(errorData.message || 'Failed to associate chat');
-          }
+        /*
+        console.log("Linking existing chats:", {
+          selectedChats,
+          courseId,
+          courseName: optimistic.name,
+        });
+        */
+        await Promise.all(
+          selectedChats.map(async (chatId) => {
+            // console.log(`Updating chat ${chatId} with course ${courseId}`);
+            const response = await fetch(
+              `${API_BASE}/chat/conversations/${chatId}`,
+              {
+                method: "PUT",
+                headers: {
+                  "Content-Type": "application/json",
+                  Authorization: `Bearer ${localStorage.getItem("token")}`,
+                },
+                body: JSON.stringify({
+                  title: `${optimistic.name} - Existing Chat`, // optional: update title
+                  courseId: courseId,
+                  courseName: optimistic.name,
+                }),
+              }
+            );
 
-          // Log the response for debugging
-          const updateData = await response.json();
-          console.log(`Chat ${chatId} updated:`, updateData);
-        }));
+            if (!response.ok) {
+              const errorData = await response.json();
+              throw new Error(errorData.message || "Failed to associate chat");
+            }
+
+            // Log the response for debugging
+            const updateData = await response.json();
+            // console.log(`Chat ${chatId} updated:`, updateData);
+          })
+        );
       }
 
       await refresh();
     } catch (e) {
       console.error("create course failed:", e);
-      const errorMessage = e?.response?.data?.message || 
-                         e?.response?.data?.error || 
-                         e.message || 
-                         "Failed to save course";
+      const errorMessage =
+        e?.response?.data?.message ||
+        e?.response?.data?.error ||
+        e.message ||
+        "Failed to save course";
       reportError(errorMessage);
       setCourses((prev) => prev.filter((c) => c._id !== optimistic._id));
     }
@@ -260,7 +275,9 @@ export default function CoursesSection({ onError }) {
       percent: Math.round(Number(editPercent)),
     };
 
-    setCourses((prev) => prev.map((c) => (c._id === updated._id ? updated : c)));
+    setCourses((prev) =>
+      prev.map((c) => (c._id === updated._id ? updated : c))
+    );
     closeEdit();
 
     try {
@@ -295,12 +312,13 @@ export default function CoursesSection({ onError }) {
     try {
       const response = await fetch(`${API_BASE}/chat/conversations`, {
         headers: {
-          Authorization: `Bearer ${localStorage.getItem('token')}`,
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
         },
       });
-      
+
       const data = await response.json();
-      
+
+      /*
       // Debug information
       console.log('All chats:', data.conversations.map(chat => ({
         id: chat.id,
@@ -313,46 +331,52 @@ export default function CoursesSection({ onError }) {
 
       // Debug the incoming chat data
       console.log('Raw chat data:', JSON.stringify(data.conversations, null, 2));
+      */
 
       // Filter conversations that belong to this course
-      const matchingChats = data.conversations.filter(chat => {
+      const matchingChats = data.conversations.filter((chat) => {
+        /*
         // Detailed debug of each chat object
-        console.log('Examining chat:', {
+        console.log("Examining chat:", {
           chatId: chat.id,
           chatTitle: chat.title,
           rawCourseId: chat.courseId,
           targetCourseId: courseId,
-          chatData: chat
+          chatData: chat,
         });
+        */
 
         // Convert both IDs to strings for comparison
-        const chatCourseIdStr = (chat.courseId || '').toString();
-        const targetCourseIdStr = (courseId || '').toString();
+        const chatCourseIdStr = (chat.courseId || "").toString();
+        const targetCourseIdStr = (courseId || "").toString();
         const matches = chatCourseIdStr === targetCourseIdStr;
-        
-        console.log('Comparison result:', {
+
+        /*
+        console.log("Comparison result:", {
           chatCourseIdStr,
           targetCourseIdStr,
           matches,
-          chatTitle: chat.title
+          chatTitle: chat.title,
         });
-        
+        */
+
         return matches;
       });
 
-      console.log('Matched chats:', {
+      /*
+      console.log("Matched chats:", {
         count: matchingChats.length,
-        chats: matchingChats.map(chat => ({
+        chats: matchingChats.map((chat) => ({
           id: chat.id,
           title: chat.title,
-          courseId: chat.courseId
-        }))
-      });
-      
+          courseId: chat.courseId,
+        })),
+      });*/
+
       setLinkedChats(matchingChats);
     } catch (error) {
-      console.error('Failed to fetch linked chats:', error);
-      reportError('Failed to load course chats');
+      console.error("Failed to fetch linked chats:", error);
+      reportError("Failed to load course chats");
     } finally {
       setLoadingChats(false);
     }
@@ -401,10 +425,7 @@ export default function CoursesSection({ onError }) {
   return (
     <Box className="dashboard-courses">
       {localError && (
-        <Alert
-          severity="error"
-          sx={{ mb: 2, maxWidth: 1000, mx: "auto" }}
-        >
+        <Alert severity="error" sx={{ mb: 2, maxWidth: 1000, mx: "auto" }}>
           {localError}
         </Alert>
       )}
@@ -417,36 +438,48 @@ export default function CoursesSection({ onError }) {
         }}
       >
         <h2>Courses</h2>
-        <Button variant="outlined" startIcon={<AddCircleOutlineIcon />} onClick={openAdd}>
+        <Button
+          variant="outlined"
+          startIcon={<AddCircleOutlineIcon />}
+          onClick={openAdd}
+        >
           Add Course
         </Button>
       </Box>
 
       <div className="courses-list">
         {courses.map((course, idx) => (
-          <div 
-            className="course-card" 
+          <div
+            className="course-card"
             key={course._id || `${course.name}-${idx}`}
             onClick={() => openCourseDetails(course)}
-            style={{ cursor: 'pointer' }}
+            style={{ cursor: "pointer" }}
           >
             <div className="course-card-top">
               <div className="course-title" title={course.name}>
                 {course.name}
               </div>
-              <Stack 
-                direction="row" 
-                spacing={0.5} 
+              <Stack
+                direction="row"
+                spacing={0.5}
                 className="course-actions"
                 onClick={(e) => e.stopPropagation()} // Prevent card click when clicking actions
               >
                 <Tooltip title="Edit">
-                  <IconButton size="small" onClick={() => openEdit(course)} aria-label={`Edit ${course.name}`}>
+                  <IconButton
+                    size="small"
+                    onClick={() => openEdit(course)}
+                    aria-label={`Edit ${course.name}`}
+                  >
                     <EditIcon fontSize="small" />
                   </IconButton>
                 </Tooltip>
                 <Tooltip title="Delete">
-                  <IconButton size="small" onClick={() => openDelete(course)} aria-label={`Delete ${course.name}`}>
+                  <IconButton
+                    size="small"
+                    onClick={() => openDelete(course)}
+                    aria-label={`Delete ${course.name}`}
+                  >
                     <DeleteIcon fontSize="small" />
                   </IconButton>
                 </Tooltip>
@@ -486,11 +519,13 @@ export default function CoursesSection({ onError }) {
             error={!!percentError}
             helperText={percentError || "0–100"}
           />
-          
+
           {/* Chat Options */}
           <Box sx={{ mt: 2 }}>
-            <Typography variant="subtitle1" sx={{ mb: 1 }}>Chat Options</Typography>
-            
+            <Typography variant="subtitle1" sx={{ mb: 1 }}>
+              Chat Options
+            </Typography>
+
             {/* Create New Chat Option */}
             <Box sx={{ mb: 2 }}>
               <Button
@@ -506,8 +541,10 @@ export default function CoursesSection({ onError }) {
             {/* Existing Chats */}
             {existingChats.length > 0 && (
               <Box>
-                <Typography variant="subtitle2" sx={{ mb: 1 }}>Or Select Existing Chats:</Typography>
-                <Box sx={{ maxHeight: 200, overflowY: 'auto' }}>
+                <Typography variant="subtitle2" sx={{ mb: 1 }}>
+                  Or Select Existing Chats:
+                </Typography>
+                <Box sx={{ maxHeight: 200, overflowY: "auto" }}>
                   {existingChats.map((chat) => (
                     <Box
                       key={chat.id}
@@ -515,21 +552,27 @@ export default function CoursesSection({ onError }) {
                         p: 1,
                         mb: 0.5,
                         border: 1,
-                        borderColor: selectedChats.includes(chat.id) ? 'primary.main' : 'grey.300',
+                        borderColor: selectedChats.includes(chat.id)
+                          ? "primary.main"
+                          : "grey.300",
                         borderRadius: 1,
-                        cursor: 'pointer',
-                        '&:hover': { bgcolor: 'action.hover' },
-                        bgcolor: selectedChats.includes(chat.id) ? 'action.selected' : 'background.paper',
+                        cursor: "pointer",
+                        "&:hover": { bgcolor: "action.hover" },
+                        bgcolor: selectedChats.includes(chat.id)
+                          ? "action.selected"
+                          : "background.paper",
                       }}
                       onClick={() => {
-                        setSelectedChats(prev =>
+                        setSelectedChats((prev) =>
                           prev.includes(chat.id)
-                            ? prev.filter(id => id !== chat.id)
+                            ? prev.filter((id) => id !== chat.id)
                             : [...prev, chat.id]
                         );
                       }}
                     >
-                      <Typography noWrap>{chat.title || 'Untitled Chat'}</Typography>
+                      <Typography noWrap>
+                        {chat.title || "Untitled Chat"}
+                      </Typography>
                     </Box>
                   ))}
                 </Box>
@@ -576,7 +619,9 @@ export default function CoursesSection({ onError }) {
         </DialogContent>
         <DialogActions>
           <Button onClick={closeEdit}>Cancel</Button>
-          <Button variant="contained" onClick={saveEdit}>Save Changes</Button>
+          <Button variant="contained" onClick={saveEdit}>
+            Save Changes
+          </Button>
         </DialogActions>
       </Dialog>
 
@@ -585,34 +630,54 @@ export default function CoursesSection({ onError }) {
         <DialogTitle>Delete course?</DialogTitle>
         <DialogContent>
           <Typography>
-            {`Are you sure you want to delete "${toDelete?.name || ""}"? This can't be undone.`}
+            {`Are you sure you want to delete "${
+              toDelete?.name || ""
+            }"? This can't be undone.`}
           </Typography>
         </DialogContent>
         <DialogActions>
           <Button onClick={closeDelete}>Cancel</Button>
-          <Button color="error" variant="contained" onClick={confirmDelete}>Delete</Button>
+          <Button color="error" variant="contained" onClick={confirmDelete}>
+            Delete
+          </Button>
         </DialogActions>
       </Dialog>
 
       {/* Course Details */}
-      <Dialog open={isDetailsOpen} onClose={closeCourseDetails} fullWidth maxWidth="sm">
+      <Dialog
+        open={isDetailsOpen}
+        onClose={closeCourseDetails}
+        fullWidth
+        maxWidth="sm"
+      >
         <DialogTitle>
-          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <Box
+            sx={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+            }}
+          >
             <Typography variant="h6">{selectedCourse?.name}</Typography>
-            <Typography variant="subtitle1" color="primary">{selectedCourse?.percent}%</Typography>
+            <Typography variant="subtitle1" color="primary">
+              {selectedCourse?.percent}%
+            </Typography>
           </Box>
         </DialogTitle>
         <DialogContent sx={{ pt: 2 }}>
-          <Typography variant="h6" sx={{ mb: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
+          <Typography
+            variant="h6"
+            sx={{ mb: 2, display: "flex", alignItems: "center", gap: 1 }}
+          >
             <ChatIcon /> Course Chats
           </Typography>
 
           {loadingChats ? (
-            <Box sx={{ display: 'flex', justifyContent: 'center', p: 3 }}>
+            <Box sx={{ display: "flex", justifyContent: "center", p: 3 }}>
               <CircularProgress />
             </Box>
           ) : linkedChats.length > 0 ? (
-            <Box sx={{ maxHeight: 300, overflowY: 'auto' }}>
+            <Box sx={{ maxHeight: 300, overflowY: "auto" }}>
               {linkedChats.map((chat) => (
                 <Box
                   key={chat.id}
@@ -620,14 +685,16 @@ export default function CoursesSection({ onError }) {
                     p: 2,
                     mb: 1,
                     border: 1,
-                    borderColor: 'grey.300',
+                    borderColor: "grey.300",
                     borderRadius: 1,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
                   }}
                 >
-                  <Typography sx={{ flex: 1 }}>{chat.title || 'Untitled Chat'}</Typography>
+                  <Typography sx={{ flex: 1 }}>
+                    {chat.title || "Untitled Chat"}
+                  </Typography>
                   <Button
                     variant="outlined"
                     size="small"
@@ -643,14 +710,16 @@ export default function CoursesSection({ onError }) {
               ))}
             </Box>
           ) : (
-            <Box sx={{ textAlign: 'center', p: 3, color: 'text.secondary' }}>
-              <Typography sx={{ mb: 2 }}>No chats linked to this course yet.</Typography>
+            <Box sx={{ textAlign: "center", p: 3, color: "text.secondary" }}>
+              <Typography sx={{ mb: 2 }}>
+                No chats linked to this course yet.
+              </Typography>
               <Button
                 variant="outlined"
                 startIcon={<AddCircleOutlineIcon />}
                 onClick={() => {
                   closeCourseDetails();
-                  navigate('/chat');
+                  navigate("/chat");
                 }}
               >
                 Start New Chat
