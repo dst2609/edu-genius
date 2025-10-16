@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Box, CircularProgress, Alert, Button } from "@mui/material";
 import axios from "axios";
-import "../Dashboard/Dashboard.css"; 
+import "../Dashboard/Dashboard.css";
 import CoursesSection from "../Courses/CoursesSection.jsx";
 import { API_BASE, authHeaders } from "../../api/client";
 
@@ -22,17 +22,35 @@ const Dashboard = () => {
           setLoading(false);
           return;
         }
+
+        // Profile
         const profileRes = await axios.get(`${API_BASE}/users/profile`, {
           headers: authHeaders(),
           timeout: 8000,
         });
         setUser(profileRes.data);
+
+        // Conversations → sort by updatedAt desc → take top 3
         try {
           const chatRes = await axios.get(`${API_BASE}/chat/conversations`, {
             headers: authHeaders(),
             timeout: 8000,
           });
-          setChatHistory((chatRes.data?.conversations || []).slice(0, 5));
+
+          const all = Array.isArray(chatRes.data?.conversations)
+            ? chatRes.data.conversations
+            : [];
+
+          const recent = all
+            .slice()
+            .sort(
+              (a, b) =>
+                new Date(b.updatedAt || b.createdAt || 0) -
+                new Date(a.updatedAt || a.createdAt || 0)
+            )
+            .slice(0, 3); // ← change to 2 if you only want two
+
+          setChatHistory(recent);
         } catch {
           setChatHistory([]);
         }
@@ -73,6 +91,7 @@ const Dashboard = () => {
           {error}
         </Alert>
       )}
+
       <div className="dashboard-left-column">
         {/* Profile */}
         <div className="dashboard-profile">
@@ -117,7 +136,29 @@ const Dashboard = () => {
                   key={conversation.id || idx}
                   onClick={() => navigate(`/chat?conversationId=${conversation.id}`)}
                 >
-                  <div className="chat-preview">{conversation.title || "Untitled Conversation"}</div>
+                  <div className="chat-preview" style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                    <span className="truncate">
+                      {conversation.title || "Untitled Conversation"}
+                    </span>
+                    {conversation.courseName && (
+                      <span
+                        style={{
+                          display: "inline-flex",
+                          alignItems: "center",
+                          borderRadius: 999,
+                          background: "rgba(99,102,241,0.08)", // indigo-50-ish
+                          color: "#3730a3", // indigo-700
+                          border: "1px solid rgba(99,102,241,0.35)", // indigo-200-ish
+                          padding: "2px 6px",
+                          fontSize: 10,
+                          whiteSpace: "nowrap",
+                          lineHeight: 1.2,
+                        }}
+                      >
+                        {conversation.courseName}
+                      </span>
+                    )}
+                  </div>
                   <div className="chat-date">
                     {(() => {
                       const d = new Date(conversation.updatedAt || conversation.createdAt);
@@ -137,6 +178,8 @@ const Dashboard = () => {
           )}
         </div>
       </div>
+
+      {/* Right column: courses */}
       <CoursesSection onError={setError} />
     </div>
   );

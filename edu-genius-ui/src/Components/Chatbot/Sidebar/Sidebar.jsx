@@ -11,7 +11,7 @@ export default function Sidebar({
   onAddCourse, // (conversationId, course) => void   ⟵ NEW
 }) {
   return (
-    <aside className="w-64 border-r bg-white flex flex-col">
+    <aside className="w-80 border-r bg-white flex flex-col">
       <div className="p-3 border-b flex items-center justify-between">
         <div className="text-sm font-semibold">Conversations</div>
         <button

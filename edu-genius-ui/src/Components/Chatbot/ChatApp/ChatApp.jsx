@@ -7,6 +7,7 @@ const API_BASE_URL = (
   import.meta.env.VITE_API_BASE_URL || "http://localhost:3000"
 ).replace(/\/+$/, "");
 
+/* ───────────────── Chat API Client ───────────────── */
 class ChatApiClient {
   constructor(baseUrl) {
     this.baseUrl = baseUrl;
@@ -21,9 +22,7 @@ class ChatApiClient {
 
   async request(path, { method = "GET", body } = {}) {
     const token = localStorage.getItem("token");
-    if (!token) {
-      throw new Error("You must be logged in to chat.");
-    }
+    if (!token) throw new Error("You must be logged in to chat.");
 
     const res = await fetch(this.buildUrl(path), {
       method,
@@ -51,17 +50,12 @@ class ChatApiClient {
         }
       } catch {
         const text = await res.text();
-        if (text) {
-          message = text;
-        }
+        if (text) message = text;
       }
       throw new Error(message);
     }
 
-    if (res.status === 204) {
-      return null;
-    }
-
+    if (res.status === 204) return null;
     return res.json();
   }
 
@@ -98,6 +92,14 @@ class ChatApiClient {
       method: "DELETE",
     });
   }
+
+  // NEW: link/clear course on a conversation
+  async updateConversationCourse(conversationId, { courseId, courseName }) {
+    return this.request(`/chat/conversations/${conversationId}/course`, {
+      method: "PATCH",
+      body: { courseId, courseName },
+    });
+  }
 }
 
 const chatApi = new ChatApiClient(API_BASE_URL);
@@ -122,6 +124,9 @@ export default function App() {
   const [historyLoading, setHistoryLoading] = useState(false);
   const [initializing, setInitializing] = useState(true);
 
+  // NEW: course banner state (reflects active conversation)
+  const [selectedCourse, setSelectedCourse] = useState(null);
+
   const listRef = useRef(null);
   const composerRef = useRef(null);
 
@@ -134,6 +139,7 @@ export default function App() {
   });
   const lastDeletedRef = useRef(null);
 
+  /* ───────────────── Bootstrap ───────────────── */
   useEffect(() => {
     let cancelled = false;
 
@@ -142,6 +148,7 @@ export default function App() {
         setConversations([]);
         setMessages([]);
         setActiveId(null);
+        setSelectedCourse(null);
         setInitializing(false);
         return;
       }
@@ -156,11 +163,17 @@ export default function App() {
           const sorted = sortByUpdatedAtDesc(list);
           setConversations(sorted);
           setActiveId(sorted[0].id);
+          // reflect course for the initially active conversation
+          const c0 = sorted[0];
+          setSelectedCourse(
+            c0?.courseName ? { _id: c0.courseId || null, name: c0.courseName } : null
+          );
         } else {
           const conversation = await chatApi.createConversation("New Chat");
           if (cancelled) return;
           setConversations([conversation]);
           setActiveId(conversation.id);
+          setSelectedCourse(null);
         }
       } catch (e) {
         if (cancelled) return;
@@ -172,19 +185,17 @@ export default function App() {
           onAction: null,
         });
       } finally {
-        if (!cancelled) {
-          setInitializing(false);
-        }
+        if (!cancelled) setInitializing(false);
       }
     };
 
     bootstrap();
-
     return () => {
       cancelled = true;
     };
   }, [token]);
 
+  /* ───────────────── Load messages on active change ───────────────── */
   useEffect(() => {
     if (!token || !activeId) {
       setHistoryLoading(false);
@@ -195,16 +206,25 @@ export default function App() {
     setHistoryLoading(true);
     setMessages([]);
 
+    // reflect selected course for the active conversation (from list)
+    const activeMeta = conversations.find((c) => c.id === activeId);
+    setSelectedCourse(
+      activeMeta?.courseName ? { _id: activeMeta.courseId || null, name: activeMeta.courseName } : null
+    );
+
     (async () => {
       try {
         const msgs = await chatApi.getMessages(activeId);
         if (cancelled) return;
         setMessages(msgs);
-        setTimeout(() =>
-          listRef.current?.scrollTo({
-            top: listRef.current.scrollHeight,
-            behavior: "smooth",
-          }), 50);
+        setTimeout(
+          () =>
+            listRef.current?.scrollTo({
+              top: listRef.current.scrollHeight,
+              behavior: "smooth",
+            }),
+          50
+        );
       } catch (e) {
         if (cancelled) return;
         console.error(e);
@@ -215,15 +235,14 @@ export default function App() {
           onAction: null,
         });
       } finally {
-        if (!cancelled) {
-          setHistoryLoading(false);
-        }
+        if (!cancelled) setHistoryLoading(false);
       }
     })();
 
     return () => {
       cancelled = true;
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeId, token]);
 
   const ensureComposerVisible = () => {
@@ -249,6 +268,7 @@ export default function App() {
       setActiveId(conversation.id);
       setMessages([]);
       setInput("");
+      setSelectedCourse(null);
     } catch (e) {
       console.error(e);
       setToast({
@@ -280,12 +300,17 @@ export default function App() {
         if (id === activeId) {
           setActiveId(sorted[0].id);
           setMessages([]);
+          const c0 = sorted[0];
+          setSelectedCourse(
+            c0?.courseName ? { _id: c0.courseId || null, name: c0.courseName } : null
+          );
         }
       } else {
         const conversation = await chatApi.createConversation("New Chat");
         setConversations([conversation]);
         setActiveId(conversation.id);
         setMessages([]);
+        setSelectedCourse(null);
       }
 
       lastDeletedRef.current = removed ? { convo: removed } : null;
@@ -321,6 +346,7 @@ export default function App() {
         ])
       );
       setActiveId(recreated.id);
+      setSelectedCourse(null);
       lastDeletedRef.current = null;
     } catch (e) {
       console.error(e);
@@ -337,8 +363,14 @@ export default function App() {
     if (id === activeId) return;
     setActiveId(id);
     setInput("");
+    // sync banner immediately from known list metadata
+    const meta = conversations.find((c) => c.id === id);
+    setSelectedCourse(
+      meta?.courseName ? { _id: meta.courseId || null, name: meta.courseName } : null
+    );
   };
 
+  /* ───────────────── Send message ───────────────── */
   const send = async () => {
     const text = input.trim();
     if (!text || !activeId || loading || historyLoading || initializing) return;
@@ -382,6 +414,12 @@ export default function App() {
           const next = idx >= 0
             ? prev.map((c, index) => (index === idx ? { ...c, ...meta } : c))
             : [meta, ...prev];
+          // keep banner in sync if this is the active convo
+          if (meta.id === activeId) {
+            setSelectedCourse(
+              meta?.courseName ? { _id: meta.courseId || null, name: meta.courseName } : null
+            );
+          }
           return sortByUpdatedAtDesc(next);
         });
       } else {
@@ -421,11 +459,14 @@ export default function App() {
       });
     } finally {
       setLoading(false);
-      setTimeout(() =>
-        listRef.current?.scrollTo({
-          top: listRef.current.scrollHeight,
-          behavior: "smooth",
-        }), 50);
+      setTimeout(
+        () =>
+          listRef.current?.scrollTo({
+            top: listRef.current.scrollHeight,
+            behavior: "smooth",
+          }),
+        50
+      );
     }
   };
 
@@ -436,6 +477,137 @@ export default function App() {
     }
   };
 
+  /* ───────────────── Course Creation Dialog ───────────────── */
+  const [newCourseDialog, setNewCourseDialog] = useState({
+    open: false,
+    conversationId: null,
+    name: '',
+    percent: '',
+    error: null,
+  });
+
+  const validateCourse = (name, percent) => {
+    if (!name?.trim()) return 'Course name is required';
+    if (!percent?.toString()?.trim()) return 'Completion percentage is required';
+    const pct = Number(percent);
+    if (Number.isNaN(pct) || pct < 0 || pct > 100) return 'Percentage must be between 0 and 100';
+    return null;
+  };
+
+  const handleCreateCourse = async () => {
+    const error = validateCourse(newCourseDialog.name, newCourseDialog.percent);
+    if (error) {
+      setNewCourseDialog(prev => ({ ...prev, error }));
+      return;
+    }
+
+    try {
+      const response = await fetch(`${API_BASE_URL}/courses`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${localStorage.getItem('token')}`,
+        },
+        body: JSON.stringify({
+          name: newCourseDialog.name,
+          percent: Number(newCourseDialog.percent),
+        }),
+      });
+
+      if (!response.ok) {
+        const error = await response.text();
+        throw new Error(error || 'Failed to create course');
+      }
+
+      const { course } = await response.json();
+      
+      // Now link the chat to the new course
+      await handleAddCourse(newCourseDialog.conversationId, course);
+      
+      setNewCourseDialog({
+        open: false,
+        conversationId: null,
+        name: '',
+        percent: '',
+        error: null,
+      });
+
+      setToast({
+        open: true,
+        message: `Created and linked to course: ${course.name}`,
+        actionText: '',
+        onAction: null,
+      });
+    } catch (e) {
+      console.error(e);
+      setNewCourseDialog(prev => ({
+        ...prev,
+        error: e.message || 'Failed to create course',
+      }));
+    }
+  };
+
+  /* ───────────────── onAddCourse from Sidebar ───────────────── */
+  const handleAddCourse = async (conversationId, course) => {
+    // If isNew flag is set, open the create course dialog
+    if (course?.isNew) {
+      setNewCourseDialog({
+        open: true,
+        conversationId,
+        name: '',
+        percent: '',
+        error: null,
+      });
+      return;
+    }
+
+    try {
+      await chatApi.updateConversationCourse(conversationId, {
+        courseId: course?._id ?? null,
+        courseName: course?.name ?? null,
+      });
+
+      // update list metadata so sidebar shows the chip
+      setConversations((prev) => {
+        const idx = prev.findIndex((c) => c.id === conversationId);
+        if (idx < 0) return prev;
+        const next = [...prev];
+        next[idx] = {
+          ...next[idx],
+          courseId: course?._id ?? null,
+          courseName: course?.name ?? null,
+          updatedAt: new Date().toISOString(),
+        };
+        return sortByUpdatedAtDesc(next);
+      });
+
+      // if we just updated the active conversation, reflect banner
+      if (conversationId === activeId) {
+        setSelectedCourse(
+          course?.name ? { _id: course?._id ?? null, name: course.name } : null
+        );
+      }
+
+      setToast({
+        open: true,
+        message: course?.name
+          ? `Linked to course: ${course.name}`
+          : "Course cleared",
+        actionText: "",
+        onAction: null,
+      });
+    } catch (e) {
+      console.error(e);
+      setToast({
+        open: true,
+        message: e.message || "Unable to update conversation course.",
+        actionText: "",
+        onAction: null,
+      });
+    }
+  };
+
+  /* ───────────────── Render ───────────────── */
   if (!token) {
     return (
       <div className="fixed inset-x-0 bottom-0 top-[64px] flex items-center justify-center bg-white text-gray-500">
@@ -456,6 +628,8 @@ export default function App() {
           onDelete={onDelete}
           onRename={() => {}}
           onRegenerateTitle={() => {}}
+          // NEW: wire course selection
+          onAddCourse={handleAddCourse}
         />
 
         {/* Main Chat */}
@@ -463,6 +637,24 @@ export default function App() {
           <header className="h-12 px-4 flex items-center justify-end text-xs text-gray-500">
             <div className="opacity-75">Role: {role}</div>
           </header>
+
+          {/* Course banner (centered) */}
+          {selectedCourse && (
+            <div className="flex justify-center px-4">
+              <div className="my-3 inline-flex items-center gap-2 rounded-full border border-indigo-200 bg-indigo-50 px-4 py-1.5 text-indigo-700">
+                <span className="text-xs opacity-70">Course:</span>
+                <span className="font-medium text-sm">{selectedCourse.name}</span>
+                <button
+                  onClick={() => handleAddCourse(activeId, null)}
+                  className="ml-1 text-xs text-indigo-500 hover:text-indigo-700"
+                  title="Clear selected course"
+                  aria-label="Clear selected course"
+                >
+                  ×
+                </button>
+              </div>
+            </div>
+          )}
 
           <div className="flex-1 flex flex-col min-h-0">
             {/* Messages */}
@@ -494,7 +686,7 @@ export default function App() {
                   >
                     <div
                       className={
-                        "max-w-[90%] sm:max-w-[80%] lg:max-w-[70%] px-4 py-2 rounded-2xl text-sm leading-6 " +
+                        "max-w-[90%] sm:max-w-[80%] lg-max-w-[70%] px-4 py-2 rounded-2xl text-sm leading-6 " +
                         (m.role === "user"
                           ? "bg-indigo-600 text-white"
                           : "bg-gray-100 text-gray-900")
@@ -573,6 +765,48 @@ export default function App() {
         confirmText="Delete"
         onConfirm={handleConfirmDelete}
         onCancel={() => setConfirmDelete({ open: false, id: null })}
+      />
+
+      {/* Create Course Dialog */}
+      <ConfirmModal
+        open={newCourseDialog.open}
+        title="Create New Course"
+        message={
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Course Name
+              </label>
+              <input
+                type="text"
+                value={newCourseDialog.name}
+                onChange={(e) => setNewCourseDialog(prev => ({ ...prev, name: e.target.value }))}
+                className="w-full px-3 py-2 border rounded-md text-sm"
+                placeholder="e.g., Operating Systems"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Completion Percentage
+              </label>
+              <input
+                type="number"
+                min="0"
+                max="100"
+                value={newCourseDialog.percent}
+                onChange={(e) => setNewCourseDialog(prev => ({ ...prev, percent: e.target.value }))}
+                className="w-full px-3 py-2 border rounded-md text-sm"
+                placeholder="0-100"
+              />
+            </div>
+            {newCourseDialog.error && (
+              <div className="text-sm text-red-600">{newCourseDialog.error}</div>
+            )}
+          </div>
+        }
+        confirmText="Create"
+        onConfirm={handleCreateCourse}
+        onCancel={() => setNewCourseDialog(prev => ({ ...prev, open: false }))}
       />
 
       {/* Toast */}

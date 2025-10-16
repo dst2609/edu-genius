@@ -11,15 +11,15 @@ export default function ConversationItem({
   onDelete,
   onRename,            // (title) => void
   onRegenerateTitle,   // () => void
-  onAddCourse,         // (course) => void  // optional: called when a course is selected
+  onAddCourse,         // (course) => void
 }) {
   const [isEditing, setIsEditing] = useState(false);
   const [draft, setDraft] = useState(convo.title || "New Chat");
 
-  // existing context menu (right-click)
+  // Context menu (right-click)
   const [menuOpen, setMenuOpen] = useState(false);
 
-  // NEW: plus dropdown state + data
+  // "+" dropdown state + data
   const [addOpen, setAddOpen] = useState(false);
   const [courses, setCourses] = useState([]);
   const [loadingCourses, setLoadingCourses] = useState(false);
@@ -149,9 +149,17 @@ export default function ConversationItem({
           </div>
         ) : (
           <>
-            <div className="text-sm font-medium truncate">
-              {convo.title || "New Chat"}
+            {/* Title + Course chip */}
+            <div className="text-sm font-medium truncate flex items-center gap-2">
+              <span className="truncate">{convo.title || "New Chat"}</span>
+              {convo.courseName && (
+                <span className="shrink-0 inline-flex items-center rounded-full bg-indigo-50 text-indigo-700 border border-indigo-200 px-2 py-0.5 text-[10px]">
+                  {convo.courseName}
+                </span>
+              )}
             </div>
+
+            {/* Timestamp */}
             <div className="text-[11px] text-neutral-500">
               {new Date(convo.updatedAt || Date.now()).toLocaleString()}
             </div>
@@ -164,11 +172,14 @@ export default function ConversationItem({
           {/* + Add Course dropdown trigger */}
           <button
             onClick={toggleAddMenu}
-            className="text-blue-600 hover:text-blue-800 text-xs rounded-full border border-blue-400 h-5 w-5 flex items-center justify-center"
-            title="Add Course"
-            aria-label="Add Course"
+            className="text-blue-600 hover:text-blue-800 text-sm px-2 py-0.5 rounded-md border border-blue-400 flex items-center gap-1 hover:bg-blue-50"
+            title="Add to Course"
+            aria-label="Add to Course"
           >
-            +
+            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+            </svg>
+            Add to Course
           </button>
 
           {/* Rename icon */}
@@ -224,22 +235,45 @@ export default function ConversationItem({
             </div>
           )}
 
-          {!loadingCourses && !coursesError && courses.length > 0 && (
+          {!loadingCourses && !coursesError && (
             <div className="max-h-64 overflow-auto py-1">
-              {courses.map((c) => (
-                <button
-                  key={c._id}
-                  className="w-full text-left px-3 py-2 hover:bg-neutral-100 text-sm"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setAddOpen(false);
-                    onAddCourse && onAddCourse(c); // notify parent
-                  }}
-                  title={c.name}
-                >
-                  {c.name}
-                </button>
-              ))}
+              {/* Create New Course option */}
+              <button
+                className="w-full text-left px-3 py-2 hover:bg-blue-50 text-blue-600 text-sm border-b flex items-center gap-2"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setAddOpen(false);
+                  // Pass special flag to indicate new course creation
+                  onAddCourse && onAddCourse({ isNew: true });
+                }}
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                </svg>
+                Create New Course
+              </button>
+
+              {/* Existing courses */}
+              {courses.length > 0 ? (
+                courses.map((c) => (
+                  <button
+                    key={c._id}
+                    className="w-full text-left px-3 py-2 hover:bg-neutral-100 text-sm"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setAddOpen(false);
+                      onAddCourse && onAddCourse(c);
+                    }}
+                    title={c.name}
+                  >
+                    {c.name}
+                  </button>
+                ))
+              ) : (
+                <div className="px-3 py-2 text-sm text-neutral-500">
+                  No existing courses
+                </div>
+              )}
             </div>
           )}
         </div>
