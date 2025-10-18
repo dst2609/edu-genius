@@ -7,11 +7,69 @@ const {
   updateConversationCourse,
 } = require("../models/chatModel");
 
-const OpenAI = require("openai");
+const OLLAMA_API_URL =
+  process.env.OLLAMA_API_URL || "http://localhost:11434/api/generate";
+const OLLAMA_MODEL = process.env.OLLAMA_MODEL || "llama3";
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
+const fetchFn = (...args) => {
+  if (typeof fetch !== "function") {
+    throw new Error("Fetch API is not available in this environment.");
+  }
+
+  return fetch(...args);
+};
+
+const readOllamaStream = async (response) => {
+  const decoder = new TextDecoder();
+  const reader = response.body.getReader();
+  let accumulatedText = "";
+  let buffer = "";
+
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+
+    buffer += decoder.decode(value, { stream: true });
+    const lines = buffer.split("\n");
+    buffer = lines.pop() || "";
+
+    for (const line of lines) {
+      if (!line.trim()) continue;
+
+      let parsed;
+      try {
+        parsed = JSON.parse(line);
+      } catch (err) {
+        console.error("Failed to parse Ollama stream chunk", err, line);
+        continue;
+      }
+
+      if (parsed.error) {
+        throw new Error(parsed.error);
+      }
+
+      if (parsed.response) {
+        accumulatedText += parsed.response;
+      }
+    }
+  }
+
+  if (buffer.trim()) {
+    try {
+      const parsed = JSON.parse(buffer);
+      if (parsed.error) {
+        throw new Error(parsed.error);
+      }
+      if (parsed.response) {
+        accumulatedText += parsed.response;
+      }
+    } catch (err) {
+      console.error("Failed to parse trailing Ollama stream chunk", err, buffer);
+    }
+  }
+
+  return accumulatedText.trim();
+};
 
 const chatHandler = async (req, res) => {
   const userId = req.user;
@@ -27,31 +85,30 @@ const chatHandler = async (req, res) => {
 
   try {
     let activeConversationId = conversationId;
-    let previousMessages = [];
 
     if (!activeConversationId) {
       const conversation = await createConversation(userId, title);
       activeConversationId = conversation.id;
-    } else {
-      previousMessages = await getChatHistory(activeConversationId, userId);
     }
 
-    const messages = [
-      { role: "system", content: "You are a helpful assistant." },
-      ...previousMessages.flatMap((msg) => [
-        { role: "user", content: msg.prompt },
-        { role: "assistant", content: msg.response },
-      ]),
-      { role: "user", content: prompt },
-    ];
-
-
-    const completion = await openai.chat.completions.create({
-      model: "gpt-4o-mini",
-      messages: messages,
+    const response = await fetchFn(OLLAMA_API_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: OLLAMA_MODEL,
+        prompt,
+        stream: true,
+      }),
     });
 
-    const chatResponse = completion.choices[0].message.content.trim();
+    if (!response.ok || !response.body) {
+      const message = `Failed to fetch response from Ollama: ${response.status} ${response.statusText}`;
+      throw new Error(message.trim());
+    }
+
+    const chatResponse = await readOllamaStream(response);
 
     const { chatMessage, conversation } = await saveChatMessage({
       conversationId: activeConversationId,
