@@ -10,6 +10,8 @@ const {
 const OLLAMA_API_URL =
   process.env.OLLAMA_API_URL || "http://localhost:11434/api/generate";
 const OLLAMA_MODEL = process.env.OLLAMA_MODEL || "llama3";
+const HISTORY_WINDOW = Number(process.env.CHAT_HISTORY_WINDOW || 8);
+const MAX_PROMPT_CHARS = Number(process.env.MAX_PROMPT_CHARS || 12000);
 
 const fetchFn = (...args) => {
   if (typeof fetch !== "function") {
@@ -71,6 +73,32 @@ const readOllamaStream = async (response) => {
   return accumulatedText.trim();
 };
 
+// Build a single prompt string including recent conversation turns
+const buildPromptWithHistory = (currentPrompt, history) => {
+  // history is ascending by createdAt; take only the last N exchanges
+  const recent = Array.isArray(history) && history.length > 0
+    ? history.slice(-HISTORY_WINDOW)
+    : [];
+
+  const parts = [];
+  for (const msg of recent) {
+    if (msg?.prompt) parts.push(`User: ${msg.prompt}`);
+    if (msg?.response) parts.push(`Assistant: ${msg.response}`);
+  }
+  // Append the current user prompt and leave Assistant cue
+  parts.push(`User: ${currentPrompt}`);
+  parts.push("Assistant:");
+
+  // Join and enforce a max size cap to avoid overlong prompts
+  let promptText = parts.join("\n\n");
+  if (promptText.length > MAX_PROMPT_CHARS) {
+    // Trim from the start, keep the tail which includes the latest context
+    promptText = promptText.slice(promptText.length - MAX_PROMPT_CHARS);
+  }
+
+  return promptText;
+};
+
 const chatHandler = async (req, res) => {
   const userId = req.user;
   const { prompt, conversationId, title } = req.body;
@@ -91,6 +119,18 @@ const chatHandler = async (req, res) => {
       activeConversationId = conversation.id;
     }
 
+    // Load conversation history and build a context-aware prompt
+    let history = [];
+    try {
+      history = await getChatHistory(activeConversationId, userId);
+    } catch (e) {
+      // If history can't be loaded, proceed without it
+      console.warn("Unable to load chat history for context:", e?.message || e);
+      history = [];
+    }
+
+    const finalPrompt = buildPromptWithHistory(prompt, history);
+
     const response = await fetchFn(OLLAMA_API_URL, {
       method: "POST",
       headers: {
@@ -98,7 +138,7 @@ const chatHandler = async (req, res) => {
       },
       body: JSON.stringify({
         model: OLLAMA_MODEL,
-        prompt,
+        prompt: finalPrompt,
         stream: true,
       }),
     });
