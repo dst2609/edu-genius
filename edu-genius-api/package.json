@@ -21,7 +21,7 @@
     "jsonwebtoken": "^9.0.2",
     "mongodb": "^6.19.0",
     "morgan": "^1.10.0",
-    "openai": "^6.3.0"
+    "nodemon": "^3.1.10"
   },
   "devDependencies": {
     "prisma": "^6.6.0"
