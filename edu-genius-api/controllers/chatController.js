@@ -7,9 +7,19 @@ const {
   updateConversationCourse,
 } = require("../models/chatModel");
 
+// Provider switch: 'ollama' (default) or 'openai (for online)'
+const CHAT_PROVIDER = (process.env.CHAT_PROVIDER || 'ollama').toLowerCase();
+// const CHAT_PROVIDER = (process.env.CHAT_PROVIDER || 'openai').toLowerCase();
+
+
+// Ollama config
 const OLLAMA_API_URL =
   process.env.OLLAMA_API_URL || "http://localhost:11434/api/generate";
 const OLLAMA_MODEL = process.env.OLLAMA_MODEL || "llama3";
+
+// OpenAI config
+const OPENAI_API_URL = process.env.OPENAI_API_URL || "https://api.openai.com/v1/chat/completions";
+const OPENAI_MODEL = process.env.OPENAI_MODEL || "gpt-3.5-turbo";
 const HISTORY_WINDOW = Number(process.env.CHAT_HISTORY_WINDOW || 8);
 const MAX_PROMPT_CHARS = Number(process.env.MAX_PROMPT_CHARS || 12000);
 
@@ -73,6 +83,21 @@ const readOllamaStream = async (response) => {
   return accumulatedText.trim();
 };
 
+// Build OpenAI messages array from recent history + current prompt
+const buildOpenAIMessages = (currentPrompt, history) => {
+  const recent = Array.isArray(history) && history.length > 0
+    ? history.slice(-HISTORY_WINDOW)
+    : [];
+
+  const messages = [];
+  for (const msg of recent) {
+    if (msg?.prompt) messages.push({ role: 'user', content: msg.prompt });
+    if (msg?.response) messages.push({ role: 'assistant', content: msg.response });
+  }
+  messages.push({ role: 'user', content: currentPrompt });
+  return messages;
+};
+
 // Build a single prompt string including recent conversation turns
 const buildPromptWithHistory = (currentPrompt, history) => {
   // history is ascending by createdAt; take only the last N exchanges
@@ -129,26 +154,59 @@ const chatHandler = async (req, res) => {
       history = [];
     }
 
-    const finalPrompt = buildPromptWithHistory(prompt, history);
+    let chatResponse = "";
+    if (CHAT_PROVIDER === 'openai') {
+      const openaiKey = process.env.OPENAI_API_KEY;
+      if (!openaiKey) {
+        const err = new Error("OPENAI_API_KEY is required when CHAT_PROVIDER=openai");
+        err.status = 400;
+        throw err;
+      }
 
-    const response = await fetchFn(OLLAMA_API_URL, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: OLLAMA_MODEL,
-        prompt: finalPrompt,
-        stream: true,
-      }),
-    });
+      const messages = buildOpenAIMessages(prompt, history);
+      const oaResp = await fetchFn(OPENAI_API_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${openaiKey}`,
+        },
+        body: JSON.stringify({
+          model: OPENAI_MODEL,
+          messages,
+          stream: false,
+        }),
+      });
 
-    if (!response.ok || !response.body) {
-      const message = `Failed to fetch response from Ollama: ${response.status} ${response.statusText}`;
-      throw new Error(message.trim());
+      if (!oaResp.ok) {
+        const text = await oaResp.text().catch(() => '');
+        const message = `Failed to fetch response from OpenAI: ${oaResp.status} ${oaResp.statusText} ${text}`;
+        throw new Error(message.trim());
+      }
+
+      const data = await oaResp.json();
+      chatResponse = (data?.choices?.[0]?.message?.content || '').trim();
+    } else {
+      const finalPrompt = buildPromptWithHistory(prompt, history);
+
+      const response = await fetchFn(OLLAMA_API_URL, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: OLLAMA_MODEL,
+          prompt: finalPrompt,
+          stream: true,
+        }),
+      });
+
+      if (!response.ok || !response.body) {
+        const message = `Failed to fetch response from Ollama: ${response.status} ${response.statusText}`;
+        throw new Error(message.trim());
+      }
+
+      chatResponse = await readOllamaStream(response);
     }
-
-    const chatResponse = await readOllamaStream(response);
 
     const { chatMessage, conversation } = await saveChatMessage({
       conversationId: activeConversationId,
