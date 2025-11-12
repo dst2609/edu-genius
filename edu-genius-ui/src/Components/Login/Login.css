@@ -3,10 +3,8 @@ html, body, #root {
   margin: 0;
 }
 
-/* FULL-BLEED section that spans the entire viewport width,
-   even if a parent has a max-width and centers its children */
+/* FULL-BLEED section that spans the entire viewport width */
 .login-page {
-  /* full-bleed trick */
   position: relative;
   left: 50%;
   right: 50%;
@@ -17,74 +15,211 @@ html, body, #root {
 
   display: flex;
   align-items: center;
-  justify-content: flex-end;       /* keep card on the right */
+  justify-content: flex-end;
   height: 100vh;
   padding: 40px 6vw;
   box-sizing: border-box;
 
-  background: #F9FAFB url("/images/Login.svg") no-repeat left center;
-  background-size: 55% auto;       /* adjust image width as needed */
+  background: linear-gradient(135deg, #F9FAFB 0%, #EFF6FF 100%);
+  background-image: url("/images/Login.svg");
+  background-position: left center;
+  background-repeat: no-repeat;
+  background-size: 55% auto;
+  background-attachment: fixed;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Animated background gradient */
+.login-page::before {
+  content: '';
+  position: absolute;
+  top: -50%;
+  right: -50%;
+  width: 200%;
+  height: 200%;
+  background: radial-gradient(circle at 30% 70%, rgba(37, 99, 235, 0.1) 0%, transparent 50%);
+  animation: drift 20s ease-in-out infinite;
+  z-index: 0;
+}
+
+@keyframes drift {
+  0%, 100% {
+    transform: translate(0, 0);
+  }
+  50% {
+    transform: translate(30px, -30px);
+  }
+}
+
+.login-page > * {
+  position: relative;
+  z-index: 1;
 }
 
 /* prevent horizontal scrollbars from the full-bleed section */
 body { overflow-x: hidden; }
 
-/* Card stays the same */
+/* Premium Card */
 .login-card {
   width: 100%;
   max-width: 420px;
-  background: #fff;
-  border: 1px solid #e5e7eb;
-  border-radius: 12px;
-  padding: 28px;
-  box-shadow: 0 8px 24px rgba(0,0,0,.06);
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(229, 231, 235, 0.8);
+  border-radius: 20px;
+  padding: 40px 32px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.08);
   text-align: center;
   box-sizing: border-box;
+  animation: slideInUp 500ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@keyframes slideInUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .login-card h2 {
-  margin-bottom: 24px;
-  font-size: 28px;
+  margin-bottom: 12px;
+  font-size: 32px;
   font-weight: 800;
-  color: #2563EB;
+  background: linear-gradient(135deg, #2563EB 0%, #1D4ED8 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
   letter-spacing: -0.5px;
+}
+
+.login-card p {
+  margin-bottom: 32px;
+  font-size: 14px;
+  color: #6B7280;
+  font-weight: 500;
 }
 
 .login-card input {
   box-sizing: border-box;
   width: 100%;
-  padding: 12px 14px;
-  margin-bottom: 14px;
-  border: 1px solid #d1d5db;
-  border-radius: 8px;
+  padding: 14px 16px;
+  margin-bottom: 16px;
+  border: 1.5px solid #E5E7EB;
+  border-radius: 10px;
   font-size: 15px;
-  transition: border-color .2s, box-shadow .2s;
+  font-weight: 500;
+  transition: all 200ms cubic-bezier(0.4, 0, 0.2, 1);
+  background: #FAFBFC;
 }
+
+.login-card input::placeholder {
+  color: #9CA3AF;
+  font-weight: 500;
+}
+
 .login-card input:focus {
   outline: none;
-  border-color: #2563eb;
-  box-shadow: 0 0 0 3px rgba(37,99,235,.35);
+  border-color: #2563EB;
+  background: #FFF;
+  box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.1), inset 0 2px 4px rgba(0, 0, 0, 0.02);
 }
 
 .login-card button {
   width: 100%;
-  padding: 12px;
+  padding: 14px 16px;
   border: none;
-  border-radius: 8px;
-  background: #2563eb;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #2563EB 0%, #1D4ED8 100%);
   color: #fff;
   font-size: 16px;
   font-weight: 600;
   cursor: pointer;
-  transition: background .2s;
+  transition: all 200ms cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 4px 15px rgba(37, 99, 235, 0.3);
+  letter-spacing: 0.3px;
+  margin-top: 8px;
 }
-.login-card button:hover { background: #1d4ed8; }
 
-/* Optional: on small screens, hide the illustration so the card centers */
+.login-card button:hover {
+  background: linear-gradient(135deg, #1D4ED8 0%, #1e40af 100%);
+  box-shadow: 0 8px 20px rgba(37, 99, 235, 0.4);
+  transform: translateY(-2px);
+}
+
+.login-card button:active {
+  transform: translateY(0);
+}
+
+/* Link styling */
+.login-card a {
+  color: #2563EB;
+  text-decoration: none;
+  font-weight: 600;
+  transition: all 200ms cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+}
+
+.login-card a::after {
+  content: '';
+  position: absolute;
+  bottom: -2px;
+  left: 0;
+  width: 0;
+  height: 2px;
+  background: #2563EB;
+  transition: width 200ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.login-card a:hover {
+  color: #1D4ED8;
+}
+
+.login-card a:hover::after {
+  width: 100%;
+}
+
+/* Error message styling */
+.login-error {
+  color: #EF4444;
+  font-size: 14px;
+  font-weight: 500;
+  margin-bottom: 16px;
+  padding: 12px;
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  border-radius: 8px;
+  animation: slideInDown 300ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@keyframes slideInDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Responsive */
 @media (max-width: 768px) {
   .login-page {
     justify-content: center;
-    background: #F9FAFB;
+    background: linear-gradient(135deg, #F9FAFB 0%, #EFF6FF 100%);
     padding: 24px;
+  }
+  
+  .login-card {
+    padding: 32px 24px;
+  }
+  
+  .login-card h2 {
+    font-size: 28px;
   }
 }

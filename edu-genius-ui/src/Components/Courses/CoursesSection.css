@@ -1,77 +1,326 @@
+/* ==================== COURSES SECTION ==================== */
 .dashboard-courses {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    box-sizing: border-box;
-  }
-  
-  .dashboard-courses h2 {
-    margin-bottom: 20px;
-    color: #222;
-    font-size: 1.5rem;
-    font-weight: 600;
-  }
-  
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+}
+
+.dashboard-courses h2 {
+  margin-bottom: 32px;
+  color: #1a202c;
+  font-size: 1.75rem;
+  font-weight: 800;
+  letter-spacing: -0.5px;
+  background: linear-gradient(135deg, #1a202c 0%, #2d3748 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* ==================== RESPONSIVE GRID ==================== */
+.courses-list {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 28px;
+  box-sizing: border-box;
+}
+
+/* Canvas-Style Course Card */
+.course-card {
+  background: white;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06), inset 0 0 0 1px rgba(0, 0, 0, 0.02);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  cursor: pointer;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  display: flex;
+  flex-direction: column;
+}
+
+.course-card:hover {
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12), inset 0 0 0 1px rgba(0, 0, 0, 0.05);
+  transform: translateY(-4px);
+}
+
+/* ==================== CARD STRUCTURE ==================== */
+
+/* Color Banner at Top */
+.course-card-banner {
+  height: 12px;
+  background: linear-gradient(135deg, #2563EB 0%, #1D4ED8 100%);
+  flex-shrink: 0;
+}
+
+/* ==================== COURSE CARD COLOR VARIANTS ==================== */
+
+/* Light Blue - Soft and calming */
+.course-card.card-blue {
+  background: linear-gradient(135deg, #F0F7FF 0%, #E0F2FE 100%);
+}
+
+.course-card.card-blue .course-card-banner {
+  background: linear-gradient(135deg, #3B82F6 0%, #1D4ED8 100%);
+}
+
+/* Mint Green - Fresh and clean */
+.course-card.card-green {
+  background: linear-gradient(135deg, #F0FDF4 0%, #DBEAFE 100%);
+}
+
+.course-card.card-green .course-card-banner {
+  background: linear-gradient(135deg, #10B981 0%, #059669 100%);
+}
+
+/* Lavender - Elegant and soothing */
+.course-card.card-purple {
+  background: linear-gradient(135deg, #FAF5FF 0%, #F3E8FF 100%);
+}
+
+.course-card.card-purple .course-card-banner {
+  background: linear-gradient(135deg, #A855F7 0%, #7E22CE 100%);
+}
+
+/* Peach - Warm and inviting */
+.course-card.card-orange {
+  background: linear-gradient(135deg, #FFF7ED 0%, #FFE4D6 100%);
+}
+
+.course-card.card-orange .course-card-banner {
+  background: linear-gradient(135deg, #FB923C 0%, #D97706 100%);
+}
+
+/* Soft Pink - Gentle and modern */
+.course-card.card-pink {
+  background: linear-gradient(135deg, #FFF1F2 0%, #FCE7F3 100%);
+}
+
+.course-card.card-pink .course-card-banner {
+  background: linear-gradient(135deg, #F472B6 0%, #DB2777 100%);
+}
+
+/* Soft Teal - Cool and balanced */
+.course-card.card-teal {
+  background: linear-gradient(135deg, #F0FDFA 0%, #CCFBF1 100%);
+}
+
+.course-card.card-teal .course-card-banner {
+  background: linear-gradient(135deg, #14B8A6 0%, #0D9488 100%);
+}
+
+/* Soft Indigo - Deep and sophisticated */
+.course-card.card-indigo {
+  background: linear-gradient(135deg, #EEF2FF 0%, #E0E7FF 100%);
+}
+
+.course-card.card-indigo .course-card-banner {
+  background: linear-gradient(135deg, #818CF8 0%, #4F46E5 100%);
+}
+
+/* Pale Cyan - Bright and airy */
+.course-card.card-cyan {
+  background: linear-gradient(135deg, #ECF9FF 0%, #D4F3FE 100%);
+}
+
+.course-card.card-cyan .course-card-banner {
+  background: linear-gradient(135deg, #06B6D4 0%, #0891B2 100%);
+}
+
+/* Soft Amber - Warm and natural */
+.course-card.card-amber {
+  background: linear-gradient(135deg, #FFFBEB 0%, #FEF3C7 100%);
+}
+
+.course-card.card-amber .course-card-banner {
+  background: linear-gradient(135deg, #FBBF24 0%, #F59E0B 100%);
+}
+
+/* Card Content */
+.course-card-content {
+  flex: 1;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* Course Title */
+.course-card-title {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #1a202c;
+  line-height: 1.4;
+  word-break: break-word;
+  margin: 0;
+}
+
+/* Course Meta (Term/Info) */
+.course-card-meta {
+  font-size: 0.85rem;
+  color: #6b7280;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Course Meta Badge */
+.course-meta-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: rgba(37, 99, 235, 0.08);
+  color: #2563EB;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+/* Progress Section */
+.course-progress-section {
+  margin-top: 8px;
+}
+
+.course-progress-label {
+  font-size: 0.8rem;
+  color: #6b7280;
+  font-weight: 600;
+  margin-bottom: 4px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.course-progress-value {
+  font-weight: 700;
+  color: #2563EB;
+}
+
+.course-progress {
+  width: 100%;
+  height: 6px;
+  background: #e5e7eb;
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.course-progress-bar {
+  height: 100%;
+  background: linear-gradient(90deg, #2563EB 0%, #1D4ED8 100%);
+  border-radius: 3px;
+  transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 0 8px rgba(37, 99, 235, 0.3);
+}
+
+/* ==================== FOOTER ROW WITH ICONS ==================== */
+
+.course-card-footer {
+  padding: 16px 20px;
+  border-top: 1px solid #f3f4f6;
+  background: rgba(255, 255, 255, 0.6);
+  backdrop-filter: blur(10px);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.course-actions {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+/* Icon Button Styling */
+.course-card-footer .MuiIconButton-root,
+.course-actions .MuiIconButton-root {
+  padding: 6px !important;
+  color: #6b7280;
+  transition: all 0.2s ease;
+}
+
+.course-card-footer .MuiIconButton-root:hover,
+.course-actions .MuiIconButton-root:hover {
+  color: #2563EB;
+  background: rgba(37, 99, 235, 0.1);
+  transform: scale(1.1);
+}
+
+.course-card-footer .MuiIconButton-root svg,
+.course-actions .MuiIconButton-root svg {
+  font-size: 1.1rem;
+}
+
+/* ==================== RESPONSIVE GRID ==================== */
+
+/* 2 Columns on Tablet */
+@media (max-width: 1200px) {
   .courses-list {
-    display: flex;
-    flex-wrap: wrap;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 24px;
+  }
+}
+
+/* 1 Column on Mobile */
+@media (max-width: 768px) {
+  .courses-list {
+    grid-template-columns: 1fr;
     gap: 20px;
   }
-  
+
   .course-card {
-    background: #f9f9f9;
     border-radius: 10px;
-    box-shadow: 0 1px 4px rgba(0,0,0,0.06);
-    padding: 16px 16px;
-    width: 220px;               
-    height: 110px;
-    display: flex;
-    flex-direction: column;
-    justify-content: space-between;
-    border-left: 5px solid #1976d2;
-    box-sizing: border-box;
-    overflow: hidden;          
-    word-break: break-word;
   }
-  
-  .course-card-top {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 8px;
+
+  .course-card-content {
+    padding: 16px;
+    gap: 10px;
   }
-  
-  .course-title {
-    flex: 1;
-    min-width: 0;              
-    font-weight: 600;
-    font-size: 1.05rem;
-    color: #1976d2;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-  
-  .course-card-top .MuiStack-root,
-  .course-card-top .icon-actions {
-    flex-shrink: 0;
-  }
-  
-  .course-percent {
+
+  .course-card-title {
     font-size: 1rem;
-    color: #388e3c;
-    font-weight: 500;
   }
-  
-  @media (max-width: 600px) {
-    .course-card {
-      width: calc(50% - 10px);
-      height: 110px;
-    }
+
+  .course-card-footer {
+    padding: 12px 16px;
   }
-  @media (max-width: 420px) {
-    .course-card {
-      width: 100%;
-    }
+
+  .dashboard-courses h2 {
+    font-size: 1.5rem;
+    margin-bottom: 24px;
   }
+}
+
+/* Small Mobile */
+@media (max-width: 480px) {
+  .courses-list {
+    gap: 16px;
+  }
+
+  .course-card-content {
+    padding: 14px;
+  }
+
+  .course-card-title {
+    font-size: 0.95rem;
+  }
+
+  .course-card-meta {
+    font-size: 0.8rem;
+  }
+
+  .course-card-footer {
+    padding: 10px 14px;
+    gap: 4px;
+  }
+
+  .dashboard-courses h2 {
+    font-size: 1.3rem;
+  }
+}
   

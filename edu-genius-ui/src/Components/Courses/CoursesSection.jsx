@@ -27,10 +27,52 @@ import {
   updateCourse,
   deleteCourse,
 } from "../../api/courses";
-import "../Dashboard/Dashboard.css"; // reuse same stylesheet
+import "./CoursesSection.css"; // Import CoursesSection styles
 
 const percentOk = (v) =>
   !Number.isNaN(Number(v)) && Number(v) >= 0 && Number(v) <= 100;
+
+/**
+ * Get current semester and year dynamically
+ * Spring: January - April
+ * Summer: May - July
+ * Fall: August - December
+ */
+const getCurrentSemester = () => {
+  const now = new Date();
+  const month = now.getMonth(); // 0-11
+  const year = now.getFullYear();
+
+  if (month >= 0 && month <= 3) {
+    // January - April
+    return { semester: "Spring", year };
+  } else if (month >= 4 && month <= 6) {
+    // May - July
+    return { semester: "Summer", year };
+  } else {
+    // August - December
+    return { semester: "Fall", year };
+  }
+};
+
+/**
+ * Get color class for course card based on index
+ * Cycles through 10 different colors for visual variety
+ */
+const getCardColorClass = (index) => {
+  const colors = [
+    "card-blue",
+    "card-green",
+    "card-purple",
+    "card-orange",
+    "card-pink",
+    "card-teal",
+    "card-indigo",
+    "card-cyan",
+    "card-amber",
+  ];
+  return colors[index % colors.length];
+};
 
 export default function CoursesSection({ onError }) {
   const navigate = useNavigate();
@@ -450,21 +492,53 @@ export default function CoursesSection({ onError }) {
       <div className="courses-list">
         {courses.map((course, idx) => (
           <div
-            className="course-card"
+            className={`course-card ${getCardColorClass(idx)}`}
             key={course._id || `${course.name}-${idx}`}
             onClick={() => openCourseDetails(course)}
             style={{ cursor: "pointer" }}
           >
-            <div className="course-card-top">
-              <div className="course-title" title={course.name}>
-                {course.name}
+            {/* Color Banner */}
+            <div className="course-card-banner" />
+
+            {/* Card Content */}
+            <div className="course-card-content">
+              <h3 className="course-card-title">{course.name}</h3>
+
+              {/* Meta Information */}
+              <div className="course-card-meta">
+                <span className="course-meta-badge">
+                  📅 {getCurrentSemester().semester} {getCurrentSemester().year}
+                </span>
               </div>
-              <Stack
-                direction="row"
-                spacing={0.5}
-                className="course-actions"
-                onClick={(e) => e.stopPropagation()} // Prevent card click when clicking actions
-              >
+
+              {/* Progress Section */}
+              <div className="course-progress-section">
+                <div className="course-progress-label">
+                  <span>Progress</span>
+                  <span className="course-progress-value">{course.percent}%</span>
+                </div>
+                <div className="course-progress">
+                  <div 
+                    className="course-progress-bar" 
+                    style={{ width: `${course.percent}%` }}
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Footer with Icons */}
+            <div className="course-card-footer" onClick={(e) => e.stopPropagation()}>
+              <div style={{ flex: 1, minWidth: 0 }} />
+              <div className="course-actions">
+                <Tooltip title="Details">
+                  <IconButton
+                    size="small"
+                    onClick={() => openCourseDetails(course)}
+                    aria-label={`Details ${course.name}`}
+                  >
+                    <ChatIcon fontSize="small" />
+                  </IconButton>
+                </Tooltip>
                 <Tooltip title="Edit">
                   <IconButton
                     size="small"
@@ -483,13 +557,12 @@ export default function CoursesSection({ onError }) {
                     <DeleteIcon fontSize="small" />
                   </IconButton>
                 </Tooltip>
-              </Stack>
+              </div>
             </div>
-            <div className="course-percent">{course.percent}%</div>
           </div>
         ))}
         {courses.length === 0 && (
-          <div className="no-chat-history" style={{ marginTop: 12 }}>
+          <div className="no-chat-history" style={{ marginTop: 12, gridColumn: "1 / -1" }}>
             <p>No courses yet. Click "Add Course" to create one.</p>
           </div>
         )}
