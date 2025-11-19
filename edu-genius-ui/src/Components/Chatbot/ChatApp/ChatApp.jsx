@@ -112,6 +112,39 @@ const sortByUpdatedAtDesc = (arr) =>
     (a, b) => new Date(b?.updatedAt || 0) - new Date(a?.updatedAt || 0)
   );
 
+const escapeHtml = (str = "") =>
+  str
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+
+const formatMessageContent = (text = "") => {
+  // Preserve existing inline/display math (e.g., $x^2$ or \(x^2\)) intact so MathJax can typeset it.
+  const segments = text.split(/(\$[^$]+\$|\\\([^\\]+\\\)|\\\[[^\\]+\\\])/g);
+
+  const html = segments
+    .map((segment) => {
+      const isMath =
+        segment.startsWith("$") || segment.startsWith("\\(") || segment.startsWith("\\[");
+
+      if (isMath) {
+        // Escape only HTML-reserved characters so MathJax still sees the TeX content.
+        return escapeHtml(segment);
+      }
+
+      const escaped = escapeHtml(segment);
+      const withSuperscript = escaped.replace(
+        /([A-Za-z0-9]+)\^(?:\{([^}]+)\}|([A-Za-z0-9+-]+))/g,
+        (match, base, bracedExp, exp) => `${base}<sup>${bracedExp || exp}</sup>`
+      );
+
+      return withSuperscript.replace(/\n/g, "<br/>");
+    })
+    .join("");
+
+  return html;
+};
+
 export default function App() {
   const token = localStorage.getItem("token");
   const role = localStorage.getItem("role") || "student";
@@ -123,6 +156,7 @@ export default function App() {
   const [loading, setLoading] = useState(false);
   const [historyLoading, setHistoryLoading] = useState(false);
   const [initializing, setInitializing] = useState(true);
+  const mathJaxReady = useRef(false);
 
   // NEW: course banner state (reflects active conversation)
   const [selectedCourse, setSelectedCourse] = useState(null);
@@ -244,6 +278,38 @@ export default function App() {
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeId, token]);
+
+  /* ───────────────── Math rendering ───────────────── */
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const mathJax = window.MathJax;
+    if (!mathJaxReady.current || !mathJax?.typesetPromise) return;
+
+    mathJax.typesetPromise([listRef.current]).catch((err) =>
+      console.warn("MathJax rendering failed", err)
+    );
+  }, [messages]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const script = document.getElementById("mathjax-script");
+
+    const markReadyAndTypeset = () => {
+      mathJaxReady.current = true;
+      window.MathJax?.typesetPromise?.([listRef.current]).catch((err) =>
+        console.warn("MathJax initial render failed", err)
+      );
+    };
+
+    if (window.MathJax?.typesetPromise) {
+      markReadyAndTypeset();
+      return undefined;
+    }
+
+    if (!script) return undefined;
+    script.addEventListener("load", markReadyAndTypeset);
+    return () => script.removeEventListener("load", markReadyAndTypeset);
+  }, []);
 
   const ensureComposerVisible = () => {
     listRef.current?.scrollTo({
@@ -686,14 +752,13 @@ export default function App() {
                   >
                     <div
                       className={
-                        "max-w-[90%] sm:max-w-[80%] lg-max-w-[70%] px-4 py-2 rounded-2xl text-sm leading-6 " +
+                        "max-w-[90%] sm:max-w-[80%] lg-max-w-[70%] px-4 py-2 rounded-2xl text-sm leading-6 message-content " +
                         (m.role === "user"
                           ? "bg-indigo-600 text-white"
                           : "bg-gray-100 text-gray-900")
                       }
-                    >
-                      {m.content}
-                    </div>
+                      dangerouslySetInnerHTML={{ __html: formatMessageContent(m.content) }}
+                    />
                   </div>
                 ))}
 
