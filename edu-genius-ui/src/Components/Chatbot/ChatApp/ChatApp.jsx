@@ -123,6 +123,7 @@ export default function App() {
   const [loading, setLoading] = useState(false);
   const [historyLoading, setHistoryLoading] = useState(false);
   const [initializing, setInitializing] = useState(true);
+  const mathJaxReady = useRef(false);
 
   // NEW: course banner state (reflects active conversation)
   const [selectedCourse, setSelectedCourse] = useState(null);
@@ -249,12 +250,33 @@ export default function App() {
   useEffect(() => {
     if (typeof window === "undefined") return;
     const mathJax = window.MathJax;
-    if (!mathJax?.typesetPromise) return;
+    if (!mathJaxReady.current || !mathJax?.typesetPromise) return;
 
-    mathJax.typesetPromise().catch((err) =>
+    mathJax.typesetPromise([listRef.current]).catch((err) =>
       console.warn("MathJax rendering failed", err)
     );
   }, [messages]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const script = document.getElementById("mathjax-script");
+
+    const markReadyAndTypeset = () => {
+      mathJaxReady.current = true;
+      window.MathJax?.typesetPromise?.([listRef.current]).catch((err) =>
+        console.warn("MathJax initial render failed", err)
+      );
+    };
+
+    if (window.MathJax?.typesetPromise) {
+      markReadyAndTypeset();
+      return undefined;
+    }
+
+    if (!script) return undefined;
+    script.addEventListener("load", markReadyAndTypeset);
+    return () => script.removeEventListener("load", markReadyAndTypeset);
+  }, []);
 
   const ensureComposerVisible = () => {
     listRef.current?.scrollTo({
