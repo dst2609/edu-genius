@@ -1,10 +1,11 @@
-import React from "react";
+import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import "./LandingPage.css";
-import { Box, Button, Container } from "@mui/material";
+import { Box, Button, Container, Dialog, DialogTitle, DialogContent, DialogActions } from "@mui/material";
 
 const LandingPage = () => {
   const navigate = useNavigate();
+  const [contactOpen, setContactOpen] = useState(false);
 
   return (
     <div className="landing-page">
@@ -16,9 +17,7 @@ const LandingPage = () => {
               <h1 className="hero-title">
                 Welcome to <span className="highlight">EduGenius</span>
               </h1>
-              <p className="hero-subtitle">
-                Your AI-Powered Learning Companion
-              </p>
+              <p className="hero-subtitle">Your AI-Powered Learning Companion</p>
               <p className="hero-description">
                 Experience the future of education with intelligent tutoring,
                 personalized course recommendations, and an AI chatbot ready to
@@ -203,29 +202,18 @@ const LandingPage = () => {
               </p>
             </div>
             <div className="footer-section">
-              <h4>Features</h4>
-              <ul>
-                <li>AI Chatbot</li>
-                <li>Course Library</li>
-                <li>Learning Tracking</li>
-                <li>Personalization</li>
-              </ul>
-            </div>
-            <div className="footer-section">
               <h4>Support</h4>
               <ul>
-                <li>Help Center</li>
-                <li>Contact Us</li>
-                <li>FAQ</li>
-                <li>Documentation</li>
-              </ul>
-            </div>
-            <div className="footer-section">
-              <h4>Legal</h4>
-              <ul>
-                <li>Privacy Policy</li>
-                <li>Terms of Service</li>
-                <li>Cookie Policy</li>
+                <li
+                  onClick={() => navigate("/contact")}
+                  style={{
+                    cursor: "pointer",
+                    color: "#1976d2",
+                    textDecoration: "underline",
+                  }}
+                >
+                  Contact Us
+                </li>
               </ul>
             </div>
           </div>

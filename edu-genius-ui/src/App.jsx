@@ -12,6 +12,7 @@ import Dashboard from "./Components/Dashboard/Dashboard";
 import UserProfile from "./Components/UserProfile/UserProfile";
 import Chatbot from "./Components/Chatbot/Chatbot.jsx";
 import LandingPage from "./Components/LandingPage/LandingPage";
+import Contact from "./Components/Contact/Contact";
 import { Button, Box, Container } from "@mui/material";
 
 const App = () => {
@@ -26,6 +27,7 @@ const App = () => {
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/profile" element={<UserProfile />} />
         <Route path="/chat" element={<Chatbot />} />
+        <Route path="/contact" element={<Contact />} />
       </Routes>
     </Router>
   );
