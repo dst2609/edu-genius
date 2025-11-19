@@ -245,6 +245,17 @@ export default function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeId, token]);
 
+  /* ───────────────── Math rendering ───────────────── */
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const mathJax = window.MathJax;
+    if (!mathJax?.typesetPromise) return;
+
+    mathJax.typesetPromise().catch((err) =>
+      console.warn("MathJax rendering failed", err)
+    );
+  }, [messages]);
+
   const ensureComposerVisible = () => {
     listRef.current?.scrollTo({
       top: listRef.current.scrollHeight,
@@ -685,13 +696,13 @@ export default function App() {
                     }
                   >
                     <div
-                      className={
-                        "max-w-[90%] sm:max-w-[80%] lg-max-w-[70%] px-4 py-2 rounded-2xl text-sm leading-6 " +
-                        (m.role === "user"
-                          ? "bg-indigo-600 text-white"
-                          : "bg-gray-100 text-gray-900")
-                      }
-                    >
+                    className={
+                      "max-w-[90%] sm:max-w-[80%] lg-max-w-[70%] px-4 py-2 rounded-2xl text-sm leading-6 message-content " +
+                      (m.role === "user"
+                        ? "bg-indigo-600 text-white"
+                        : "bg-gray-100 text-gray-900")
+                    }
+                  >
                       {m.content}
                     </div>
                   </div>

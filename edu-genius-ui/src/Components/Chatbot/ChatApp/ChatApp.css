@@ -85,6 +85,19 @@ html {
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
 }
 
+.message-content {
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.message-content p {
+  margin: 0.2rem 0;
+}
+
+.message-content mjx-container {
+  font-size: 1em;
+}
+
 /* Message Timestamp */
 .message-timestamp {
   font-size: 12px;
