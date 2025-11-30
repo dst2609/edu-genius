@@ -8,9 +8,8 @@ const {
 } = require("../models/chatModel");
 
 // Provider switch: 'ollama' (default) or 'openai (for online)'
-const CHAT_PROVIDER = (process.env.CHAT_PROVIDER || 'ollama').toLowerCase();
-// const CHAT_PROVIDER = (process.env.CHAT_PROVIDER || 'openai').toLowerCase();
-
+// const CHAT_PROVIDER = (process.env.CHAT_PROVIDER || 'ollama').toLowerCase();
+const CHAT_PROVIDER = (process.env.CHAT_PROVIDER || "openai").toLowerCase();
 
 // Ollama config
 const OLLAMA_API_URL =
@@ -18,7 +17,8 @@ const OLLAMA_API_URL =
 const OLLAMA_MODEL = process.env.OLLAMA_MODEL || "llama3";
 
 // OpenAI config
-const OPENAI_API_URL = process.env.OPENAI_API_URL || "https://api.openai.com/v1/chat/completions";
+const OPENAI_API_URL =
+  process.env.OPENAI_API_URL || "https://api.openai.com/v1/chat/completions";
 const OPENAI_MODEL = process.env.OPENAI_MODEL || "gpt-3.5-turbo";
 const HISTORY_WINDOW = Number(process.env.CHAT_HISTORY_WINDOW || 8);
 const MAX_PROMPT_CHARS = Number(process.env.MAX_PROMPT_CHARS || 12000);
@@ -76,7 +76,11 @@ const readOllamaStream = async (response) => {
         accumulatedText += parsed.response;
       }
     } catch (err) {
-      console.error("Failed to parse trailing Ollama stream chunk", err, buffer);
+      console.error(
+        "Failed to parse trailing Ollama stream chunk",
+        err,
+        buffer
+      );
     }
   }
 
@@ -85,25 +89,28 @@ const readOllamaStream = async (response) => {
 
 // Build OpenAI messages array from recent history + current prompt
 const buildOpenAIMessages = (currentPrompt, history) => {
-  const recent = Array.isArray(history) && history.length > 0
-    ? history.slice(-HISTORY_WINDOW)
-    : [];
+  const recent =
+    Array.isArray(history) && history.length > 0
+      ? history.slice(-HISTORY_WINDOW)
+      : [];
 
   const messages = [];
   for (const msg of recent) {
-    if (msg?.prompt) messages.push({ role: 'user', content: msg.prompt });
-    if (msg?.response) messages.push({ role: 'assistant', content: msg.response });
+    if (msg?.prompt) messages.push({ role: "user", content: msg.prompt });
+    if (msg?.response)
+      messages.push({ role: "assistant", content: msg.response });
   }
-  messages.push({ role: 'user', content: currentPrompt });
+  messages.push({ role: "user", content: currentPrompt });
   return messages;
 };
 
 // Build a single prompt string including recent conversation turns
 const buildPromptWithHistory = (currentPrompt, history) => {
   // history is ascending by createdAt; take only the last N exchanges
-  const recent = Array.isArray(history) && history.length > 0
-    ? history.slice(-HISTORY_WINDOW)
-    : [];
+  const recent =
+    Array.isArray(history) && history.length > 0
+      ? history.slice(-HISTORY_WINDOW)
+      : [];
 
   const parts = [];
   for (const msg of recent) {
@@ -155,20 +162,22 @@ const chatHandler = async (req, res) => {
     }
 
     let chatResponse = "";
-    if (CHAT_PROVIDER === 'openai') {
+    if (CHAT_PROVIDER === "openai") {
       const openaiKey = process.env.OPENAI_API_KEY;
       if (!openaiKey) {
-        const err = new Error("OPENAI_API_KEY is required when CHAT_PROVIDER=openai");
+        const err = new Error(
+          "OPENAI_API_KEY is required when CHAT_PROVIDER=openai"
+        );
         err.status = 400;
         throw err;
       }
 
       const messages = buildOpenAIMessages(prompt, history);
       const oaResp = await fetchFn(OPENAI_API_URL, {
-        method: 'POST',
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${openaiKey}`,
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${openaiKey}`,
         },
         body: JSON.stringify({
           model: OPENAI_MODEL,
@@ -178,13 +187,13 @@ const chatHandler = async (req, res) => {
       });
 
       if (!oaResp.ok) {
-        const text = await oaResp.text().catch(() => '');
+        const text = await oaResp.text().catch(() => "");
         const message = `Failed to fetch response from OpenAI: ${oaResp.status} ${oaResp.statusText} ${text}`;
         throw new Error(message.trim());
       }
 
       const data = await oaResp.json();
-      chatResponse = (data?.choices?.[0]?.message?.content || '').trim();
+      chatResponse = (data?.choices?.[0]?.message?.content || "").trim();
     } else {
       const finalPrompt = buildPromptWithHistory(prompt, history);
 
@@ -250,10 +259,13 @@ const createConversationHandler = async (req, res) => {
   }
 
   try {
-    console.log('Creating conversation with:', { title, courseId, courseName });
-    const conversation = await createConversation(userId, title, { courseId, courseName });
-    console.log('Created conversation:', conversation);
-    
+    console.log("Creating conversation with:", { title, courseId, courseName });
+    const conversation = await createConversation(userId, title, {
+      courseId,
+      courseName,
+    });
+    console.log("Created conversation:", conversation);
+
     res.status(201).json({
       id: conversation.id,
       title: conversation.title,
@@ -263,7 +275,7 @@ const createConversationHandler = async (req, res) => {
       updatedAt: conversation.updatedAt,
     });
   } catch (error) {
-    console.error('Error creating conversation:', error);
+    console.error("Error creating conversation:", error);
     res.status(500).send("Unable to create conversation");
   }
 };
@@ -345,14 +357,20 @@ const updateConversationCourseHandler = async (req, res) => {
     const { id } = req.params;
     const { courseId, courseName } = req.body || {};
 
-    if (!id) return res.status(400).json({ message: "conversation id is required" });
+    if (!id)
+      return res.status(400).json({ message: "conversation id is required" });
 
-    const updated = await updateConversationCourse(id, userId, { courseId, courseName });
+    const updated = await updateConversationCourse(id, userId, {
+      courseId,
+      courseName,
+    });
     return res.status(200).json({ conversation: updated });
   } catch (error) {
     console.error(error);
     const status = error?.status || 500;
-    return res.status(status).json({ message: error?.message || "Unable to update conversation" });
+    return res
+      .status(status)
+      .json({ message: error?.message || "Unable to update conversation" });
   }
 };
 
@@ -362,5 +380,5 @@ module.exports = {
   listConversationsHandler,
   getChatHistoryHandler,
   deleteConversationHandler,
-  updateConversationCourseHandler, 
+  updateConversationCourseHandler,
 };
