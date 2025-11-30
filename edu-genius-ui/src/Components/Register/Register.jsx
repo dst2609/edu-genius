@@ -8,7 +8,7 @@ import {
   InputLabel,
   FormControl,
 } from "@mui/material";
-import "./register.css";
+import "./Register.css";
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL.replace(/\/+$/, "");
 
