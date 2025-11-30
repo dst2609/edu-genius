@@ -9,9 +9,14 @@ export default function Sidebar({
   onRename,
   onRegenerateTitle,
   onAddCourse, // (conversationId, course) => void   ⟵ NEW
+  isMobile = false,
 }) {
+  const asideClass = isMobile
+    ? "w-full max-w-md border-r bg-white flex flex-col"
+    : "w-80 border-r bg-white flex flex-col";
+
   return (
-    <aside className="w-80 border-r bg-white flex flex-col">
+    <aside className={asideClass}>
       <div className="p-3 border-b flex items-center justify-between">
         <div className="text-sm font-semibold">Conversations</div>
         <button

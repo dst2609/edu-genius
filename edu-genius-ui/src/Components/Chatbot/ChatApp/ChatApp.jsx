@@ -154,6 +154,8 @@ export default function App() {
   const [historyLoading, setHistoryLoading] = useState(false);
   const [initializing, setInitializing] = useState(true);
   const mathJaxReady = useRef(false);
+  const [isMobile, setIsMobile] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   // NEW: course banner state (reflects active conversation)
   const [selectedCourse, setSelectedCourse] = useState(null);
@@ -169,6 +171,21 @@ export default function App() {
     onAction: null,
   });
   const lastDeletedRef = useRef(null);
+
+  /* ───────────────── Responsive helpers ───────────────── */
+  useEffect(() => {
+    const mq = window.matchMedia("(max-width: 900px)");
+    const updateIsMobile = (e) => setIsMobile(e.matches);
+    updateIsMobile(mq);
+    mq.addEventListener("change", updateIsMobile);
+    return () => mq.removeEventListener("change", updateIsMobile);
+  }, []);
+
+  useEffect(() => {
+    if (!isMobile) {
+      setSidebarOpen(false);
+    }
+  }, [isMobile]);
 
   /* ───────────────── Bootstrap ───────────────── */
   useEffect(() => {
@@ -336,6 +353,9 @@ export default function App() {
       setMessages([]);
       setInput("");
       setSelectedCourse(null);
+      if (isMobile) {
+        setSidebarOpen(false);
+      }
     } catch (e) {
       console.error(e);
       setToast({
@@ -439,6 +459,9 @@ export default function App() {
         ? { _id: meta.courseId || null, name: meta.courseName }
         : null
     );
+    if (isMobile) {
+      setSidebarOpen(false);
+    }
   };
 
   /* ───────────────── Send message ───────────────── */
@@ -692,26 +715,73 @@ export default function App() {
     );
   }
 
+  const sidebar = (
+    <Sidebar
+      conversations={conversations}
+      activeId={activeId}
+      onNewChat={startNewChat}
+      onSelect={selectConversation}
+      onDelete={onDelete}
+      onRename={() => {}}
+      onRegenerateTitle={() => {}}
+      onAddCourse={handleAddCourse}
+      isMobile={isMobile}
+    />
+  );
+
   return (
     <div className="fixed inset-x-0 bottom-0 top-[64px] bg-white">
-      <div className="h-full flex bg-white text-gray-900">
-        {/* Sidebar */}
-        <Sidebar
-          conversations={conversations}
-          activeId={activeId}
-          onNewChat={startNewChat}
-          onSelect={selectConversation}
-          onDelete={onDelete}
-          onRename={() => {}}
-          onRegenerateTitle={() => {}}
-          // NEW: wire course selection
-          onAddCourse={handleAddCourse}
-        />
+      <div className="h-full flex bg-white text-gray-900 relative">
+        {!isMobile && sidebar}
+        {isMobile && (
+          <>
+            <div
+              className={`chat-sidebar-drawer ${sidebarOpen ? "open" : ""}`}
+              aria-hidden={!sidebarOpen}
+            >
+              <div className="chat-sidebar-inner">
+                <button
+                  className="chat-close-button"
+                  onClick={() => setSidebarOpen(false)}
+                  aria-label="Close conversation list"
+                >
+                  ×
+                </button>
+                {sidebar}
+              </div>
+            </div>
+            {sidebarOpen && (
+              <div
+                className="chat-sidebar-backdrop"
+                onClick={() => setSidebarOpen(false)}
+              />
+            )}
+          </>
+        )}
 
         {/* Main Chat */}
         <div className="flex-1 flex flex-col min-h-0">
-          <header className="h-12 px-4 flex items-center justify-end text-xs text-gray-500">
-            <div className="opacity-75">Role: {role}</div>
+          <header className="chat-topbar h-12 px-3 sm:px-4 flex items-center justify-between text-xs text-gray-500">
+            {isMobile && (
+              <button
+                className="chat-menu-button"
+                onClick={() => setSidebarOpen(true)}
+                aria-label="Open conversation list"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  viewBox="0 0 24 24"
+                  width="20"
+                  height="20"
+                  fill="currentColor"
+                >
+                  <path d="M3 6h18v2H3V6zm0 5h18v2H3v-2zm0 5h18v2H3v-2z" />
+                </svg>
+              </button>
+            )}
+            <div className="flex-1 flex justify-end">
+              <div className="opacity-75">Role: {role}</div>
+            </div>
           </header>
 
           {/* Course banner (centered) */}
@@ -737,7 +807,7 @@ export default function App() {
           <div className="flex-1 flex flex-col min-h-0">
             {/* Messages */}
             <div ref={listRef} className="flex-1 overflow-auto">
-              <div className="w-full px-6 md:px-10 lg:px-16 py-4 space-y-3">
+              <div className="w-full px-4 sm:px-6 md:px-10 lg:px-16 py-4 space-y-3">
                 {initializing && (
                   <div className="flex justify-start text-gray-500 text-sm pt-10">
                     <Spinner />
@@ -789,7 +859,7 @@ export default function App() {
             {/* Composer */}
             <div
               ref={composerRef}
-              className="sticky bottom-0 px-6 md:px-10 lg:px-16 pb-[max(16px,env(safe-area-inset-bottom))] pt-3 bg-gradient-to-t from-white via-white/80 to-transparent"
+              className="sticky bottom-0 px-4 sm:px-6 md:px-10 lg:px-16 pb-[max(16px,env(safe-area-inset-bottom))] pt-3 bg-gradient-to-t from-white via-white/80 to-transparent"
             >
               <div className="w-full">
                 <div className="flex items-end gap-2 rounded-full ring-1 ring-gray-300 bg-white shadow-sm focus-within:ring-2 focus-within:ring-indigo-500">
