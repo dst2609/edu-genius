@@ -8,8 +8,8 @@ import { API_BASE, authHeaders } from "../../api/client";
 
 const Dashboard = () => {
   const [loading, setLoading] = useState(true);
-  const [error, setError]   = useState(null);
-  const [user, setUser]     = useState(null);
+  const [error, setError] = useState(null);
+  const [user, setUser] = useState(null);
   const [chatHistory, setChatHistory] = useState([]);
   const navigate = useNavigate();
 
@@ -76,7 +76,11 @@ const Dashboard = () => {
     return (
       <Box sx={{ mt: 4, maxWidth: 800, mx: "auto" }}>
         <Alert severity="error">{error}</Alert>
-        <Button variant="contained" sx={{ mt: 2 }} onClick={() => navigate("/login")}>
+        <Button
+          variant="contained"
+          sx={{ mt: 2 }}
+          onClick={() => navigate("/login")}
+        >
           Go to Login
         </Button>
       </Box>
@@ -87,7 +91,10 @@ const Dashboard = () => {
     <div className="dashboard-container" style={{ margin: "40px 0 0 0" }}>
       {/* page-level error (non-blocking) */}
       {error && user && (
-        <Alert severity="error" sx={{ mb: 2, maxWidth: 1000, margin: "0 auto" }}>
+        <Alert
+          severity="error"
+          sx={{ mb: 2, maxWidth: 1000, margin: "0 auto" }}
+        >
           {error}
         </Alert>
       )}
@@ -95,7 +102,9 @@ const Dashboard = () => {
       <div className="dashboard-left-column">
         {/* Profile */}
         <div className="dashboard-profile">
-          <h2 style={{ fontWeight: "bold", fontSize: "1.8rem" }}>Student Details</h2>
+          <h2 style={{ fontWeight: "bold", fontSize: "1.8rem" }}>
+            Student Details
+          </h2>
           <div className="profile-field">
             <span className="profile-label">First Name:</span>{" "}
             <span className="profile-value">{user?.firstname || "N/A"}</span>
@@ -116,7 +125,11 @@ const Dashboard = () => {
             <span className="profile-label">Region:</span>{" "}
             <span className="profile-value">{user?.region || "N/A"}</span>
           </div>
-          <Button variant="contained" sx={{ mt: 2, width: "100%" }} onClick={() => navigate("/profile")}>
+          <Button
+            variant="contained"
+            sx={{ mt: 2, width: "100%" }}
+            onClick={() => navigate("/profile")}
+          >
             View Profile
           </Button>
         </div>
@@ -124,7 +137,11 @@ const Dashboard = () => {
         {/* Recent Chat History */}
         <div className="dashboard-chat-history">
           <h2>Recent Chat History</h2>
-          <Button variant="contained" sx={{ mb: 2, width: "100%" }} onClick={() => navigate("/chat")}>
+          <Button
+            variant="contained"
+            sx={{ mb: 2, width: "100%" }}
+            onClick={() => navigate("/chat")}
+          >
             New Chat
           </Button>
 
@@ -134,9 +151,14 @@ const Dashboard = () => {
                 <div
                   className="chat-history-item"
                   key={conversation.id || idx}
-                  onClick={() => navigate(`/chat?conversationId=${conversation.id}`)}
+                  onClick={() =>
+                    navigate(`/chat?conversationId=${conversation.id}`)
+                  }
                 >
-                  <div className="chat-preview" style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <div
+                    className="chat-preview"
+                    style={{ display: "flex", alignItems: "center", gap: 8 }}
+                  >
                     <span className="truncate">
                       {conversation.title || "Untitled Conversation"}
                     </span>
@@ -161,7 +183,9 @@ const Dashboard = () => {
                   </div>
                   <div className="chat-date">
                     {(() => {
-                      const d = new Date(conversation.updatedAt || conversation.createdAt);
+                      const d = new Date(
+                        conversation.updatedAt || conversation.createdAt
+                      );
                       return isNaN(d) ? "" : d.toLocaleDateString();
                     })()}
                   </div>
@@ -170,8 +194,15 @@ const Dashboard = () => {
             </div>
           ) : (
             <div className="no-chat-history">
-              <p>No chat history available. Start a conversation with the ChatBot!</p>
-              <Button variant="outlined" sx={{ mt: 1 }} onClick={() => navigate("/chat")}>
+              <p>
+                No chat history available. Start a conversation with the
+                ChatBot!
+              </p>
+              <Button
+                variant="outlined"
+                sx={{ mt: 1 }}
+                onClick={() => navigate("/chat")}
+              >
                 Start Chatting
               </Button>
             </div>

@@ -1,17 +1,15 @@
 import React, { useEffect, useRef, useState } from "react";
 
-const API_BASE_URL = (
-  import.meta.env.VITE_API_BASE_URL || "http://localhost:3000"
-).replace(/\/+$/, "");
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL.replace(/\/+$/, "");
 
 export default function ConversationItem({
   convo,
   active,
   onClick,
   onDelete,
-  onRename,            // (title) => void
-  onRegenerateTitle,   // () => void
-  onAddCourse,         // (course) => void
+  onRename, // (title) => void
+  onRegenerateTitle, // () => void
+  onAddCourse, // (course) => void
 }) {
   const [isEditing, setIsEditing] = useState(false);
   const [draft, setDraft] = useState(convo.title || "New Chat");
@@ -176,8 +174,18 @@ export default function ConversationItem({
             title="Add to Course"
             aria-label="Add to Course"
           >
-            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+            <svg
+              className="w-3 h-3"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth="2"
+                d="M12 6v6m0 0v6m0-6h6m-6 0H6"
+              />
             </svg>
             Add to Course
           </button>
@@ -224,9 +232,7 @@ export default function ConversationItem({
           )}
 
           {coursesError && !loadingCourses && (
-            <div className="px-3 py-3 text-sm text-red-600">
-              {coursesError}
-            </div>
+            <div className="px-3 py-3 text-sm text-red-600">{coursesError}</div>
           )}
 
           {!loadingCourses && !coursesError && courses.length === 0 && (
@@ -247,8 +253,18 @@ export default function ConversationItem({
                   onAddCourse && onAddCourse({ isNew: true });
                 }}
               >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                <svg
+                  className="w-4 h-4"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth="2"
+                    d="M12 6v6m0 0v6m0-6h6m-6 0H6"
+                  />
                 </svg>
                 Create New Course
               </button>

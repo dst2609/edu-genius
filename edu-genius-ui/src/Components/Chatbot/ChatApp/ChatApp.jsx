@@ -3,9 +3,7 @@ import "./ChatApp.css";
 import Sidebar from "../Sidebar/Sidebar.jsx";
 import Spinner from "../Spinner/Spinner.jsx";
 
-const API_BASE_URL = (
-  import.meta.env.VITE_API_BASE_URL || "http://localhost:3000"
-).replace(/\/+$/, "");
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL.replace(/\/+$/, "");
 
 /* ───────────────── Chat API Client ───────────────── */
 class ChatApiClient {
@@ -113,10 +111,7 @@ const sortByUpdatedAtDesc = (arr) =>
   );
 
 const escapeHtml = (str = "") =>
-  str
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;");
+  str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 
 const formatMessageContent = (text = "") => {
   // Preserve existing inline/display math (e.g., $x^2$ or \(x^2\)) intact so MathJax can typeset it.
@@ -125,7 +120,9 @@ const formatMessageContent = (text = "") => {
   const html = segments
     .map((segment) => {
       const isMath =
-        segment.startsWith("$") || segment.startsWith("\\(") || segment.startsWith("\\[");
+        segment.startsWith("$") ||
+        segment.startsWith("\\(") ||
+        segment.startsWith("\\[");
 
       if (isMath) {
         // Escape only HTML-reserved characters so MathJax still sees the TeX content.
@@ -200,7 +197,9 @@ export default function App() {
           // reflect course for the initially active conversation
           const c0 = sorted[0];
           setSelectedCourse(
-            c0?.courseName ? { _id: c0.courseId || null, name: c0.courseName } : null
+            c0?.courseName
+              ? { _id: c0.courseId || null, name: c0.courseName }
+              : null
           );
         } else {
           const conversation = await chatApi.createConversation("New Chat");
@@ -243,7 +242,9 @@ export default function App() {
     // reflect selected course for the active conversation (from list)
     const activeMeta = conversations.find((c) => c.id === activeId);
     setSelectedCourse(
-      activeMeta?.courseName ? { _id: activeMeta.courseId || null, name: activeMeta.courseName } : null
+      activeMeta?.courseName
+        ? { _id: activeMeta.courseId || null, name: activeMeta.courseName }
+        : null
     );
 
     (async () => {
@@ -285,9 +286,9 @@ export default function App() {
     const mathJax = window.MathJax;
     if (!mathJaxReady.current || !mathJax?.typesetPromise) return;
 
-    mathJax.typesetPromise([listRef.current]).catch((err) =>
-      console.warn("MathJax rendering failed", err)
-    );
+    mathJax
+      .typesetPromise([listRef.current])
+      .catch((err) => console.warn("MathJax rendering failed", err));
   }, [messages]);
 
   useEffect(() => {
@@ -368,7 +369,9 @@ export default function App() {
           setMessages([]);
           const c0 = sorted[0];
           setSelectedCourse(
-            c0?.courseName ? { _id: c0.courseId || null, name: c0.courseName } : null
+            c0?.courseName
+              ? { _id: c0.courseId || null, name: c0.courseName }
+              : null
           );
         }
       } else {
@@ -432,7 +435,9 @@ export default function App() {
     // sync banner immediately from known list metadata
     const meta = conversations.find((c) => c.id === id);
     setSelectedCourse(
-      meta?.courseName ? { _id: meta.courseId || null, name: meta.courseName } : null
+      meta?.courseName
+        ? { _id: meta.courseId || null, name: meta.courseName }
+        : null
     );
   };
 
@@ -477,13 +482,16 @@ export default function App() {
       if (meta) {
         setConversations((prev) => {
           const idx = prev.findIndex((c) => c.id === meta.id);
-          const next = idx >= 0
-            ? prev.map((c, index) => (index === idx ? { ...c, ...meta } : c))
-            : [meta, ...prev];
+          const next =
+            idx >= 0
+              ? prev.map((c, index) => (index === idx ? { ...c, ...meta } : c))
+              : [meta, ...prev];
           // keep banner in sync if this is the active convo
           if (meta.id === activeId) {
             setSelectedCourse(
-              meta?.courseName ? { _id: meta.courseId || null, name: meta.courseName } : null
+              meta?.courseName
+                ? { _id: meta.courseId || null, name: meta.courseName }
+                : null
             );
           }
           return sortByUpdatedAtDesc(next);
@@ -547,32 +555,34 @@ export default function App() {
   const [newCourseDialog, setNewCourseDialog] = useState({
     open: false,
     conversationId: null,
-    name: '',
-    percent: '',
+    name: "",
+    percent: "",
     error: null,
   });
 
   const validateCourse = (name, percent) => {
-    if (!name?.trim()) return 'Course name is required';
-    if (!percent?.toString()?.trim()) return 'Completion percentage is required';
+    if (!name?.trim()) return "Course name is required";
+    if (!percent?.toString()?.trim())
+      return "Completion percentage is required";
     const pct = Number(percent);
-    if (Number.isNaN(pct) || pct < 0 || pct > 100) return 'Percentage must be between 0 and 100';
+    if (Number.isNaN(pct) || pct < 0 || pct > 100)
+      return "Percentage must be between 0 and 100";
     return null;
   };
 
   const handleCreateCourse = async () => {
     const error = validateCourse(newCourseDialog.name, newCourseDialog.percent);
     if (error) {
-      setNewCourseDialog(prev => ({ ...prev, error }));
+      setNewCourseDialog((prev) => ({ ...prev, error }));
       return;
     }
 
     try {
       const response = await fetch(`${API_BASE_URL}/courses`, {
-        method: 'POST',
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${localStorage.getItem('token')}`,
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
         },
         body: JSON.stringify({
           name: newCourseDialog.name,
@@ -582,33 +592,33 @@ export default function App() {
 
       if (!response.ok) {
         const error = await response.text();
-        throw new Error(error || 'Failed to create course');
+        throw new Error(error || "Failed to create course");
       }
 
       const { course } = await response.json();
-      
+
       // Now link the chat to the new course
       await handleAddCourse(newCourseDialog.conversationId, course);
-      
+
       setNewCourseDialog({
         open: false,
         conversationId: null,
-        name: '',
-        percent: '',
+        name: "",
+        percent: "",
         error: null,
       });
 
       setToast({
         open: true,
         message: `Created and linked to course: ${course.name}`,
-        actionText: '',
+        actionText: "",
         onAction: null,
       });
     } catch (e) {
       console.error(e);
-      setNewCourseDialog(prev => ({
+      setNewCourseDialog((prev) => ({
         ...prev,
-        error: e.message || 'Failed to create course',
+        error: e.message || "Failed to create course",
       }));
     }
   };
@@ -620,8 +630,8 @@ export default function App() {
       setNewCourseDialog({
         open: true,
         conversationId,
-        name: '',
-        percent: '',
+        name: "",
+        percent: "",
         error: null,
       });
       return;
@@ -709,7 +719,9 @@ export default function App() {
             <div className="flex justify-center px-4">
               <div className="my-3 inline-flex items-center gap-2 rounded-full border border-indigo-200 bg-indigo-50 px-4 py-1.5 text-indigo-700">
                 <span className="text-xs opacity-70">Course:</span>
-                <span className="font-medium text-sm">{selectedCourse.name}</span>
+                <span className="font-medium text-sm">
+                  {selectedCourse.name}
+                </span>
                 <button
                   onClick={() => handleAddCourse(activeId, null)}
                   className="ml-1 text-xs text-indigo-500 hover:text-indigo-700"
@@ -757,7 +769,9 @@ export default function App() {
                           ? "bg-indigo-600 text-white"
                           : "bg-gray-100 text-gray-900")
                       }
-                      dangerouslySetInnerHTML={{ __html: formatMessageContent(m.content) }}
+                      dangerouslySetInnerHTML={{
+                        __html: formatMessageContent(m.content),
+                      }}
                     />
                   </div>
                 ))}
@@ -792,10 +806,7 @@ export default function App() {
                   <button
                     onClick={send}
                     disabled={
-                      loading ||
-                      historyLoading ||
-                      initializing ||
-                      !input.trim()
+                      loading || historyLoading || initializing || !input.trim()
                     }
                     className="m-1 mr-2 h-10 w-10 rounded-full flex items-center justify-center bg-gray-100 hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed"
                     title="Send"
@@ -845,7 +856,12 @@ export default function App() {
               <input
                 type="text"
                 value={newCourseDialog.name}
-                onChange={(e) => setNewCourseDialog(prev => ({ ...prev, name: e.target.value }))}
+                onChange={(e) =>
+                  setNewCourseDialog((prev) => ({
+                    ...prev,
+                    name: e.target.value,
+                  }))
+                }
                 className="w-full px-3 py-2 border rounded-md text-sm"
                 placeholder="e.g., Operating Systems"
               />
@@ -859,19 +875,28 @@ export default function App() {
                 min="0"
                 max="100"
                 value={newCourseDialog.percent}
-                onChange={(e) => setNewCourseDialog(prev => ({ ...prev, percent: e.target.value }))}
+                onChange={(e) =>
+                  setNewCourseDialog((prev) => ({
+                    ...prev,
+                    percent: e.target.value,
+                  }))
+                }
                 className="w-full px-3 py-2 border rounded-md text-sm"
                 placeholder="0-100"
               />
             </div>
             {newCourseDialog.error && (
-              <div className="text-sm text-red-600">{newCourseDialog.error}</div>
+              <div className="text-sm text-red-600">
+                {newCourseDialog.error}
+              </div>
             )}
           </div>
         }
         confirmText="Create"
         onConfirm={handleCreateCourse}
-        onCancel={() => setNewCourseDialog(prev => ({ ...prev, open: false }))}
+        onCancel={() =>
+          setNewCourseDialog((prev) => ({ ...prev, open: false }))
+        }
       />
 
       {/* Toast */}

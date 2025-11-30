@@ -4,6 +4,8 @@ import { useNavigate } from "react-router-dom";
 import { Alert } from "@mui/material";
 import "./login.css";
 
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL.replace(/\/+$/, "");
+
 const Login = ({ setToken }) => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -17,7 +19,7 @@ const Login = ({ setToken }) => {
     }
 
     try {
-      const response = await axios.post("http://localhost:3000/users/login", {
+      const response = await axios.post(`${API_BASE_URL}/users/login`, {
         email,
         password,
       });

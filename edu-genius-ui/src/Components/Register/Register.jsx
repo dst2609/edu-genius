@@ -10,6 +10,8 @@ import {
 } from "@mui/material";
 import "./register.css";
 
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL.replace(/\/+$/, "");
+
 const Register = () => {
   const [firstname, setFirstname] = useState("");
   const [lastname, setLastname] = useState("");
@@ -36,7 +38,7 @@ const Register = () => {
     }
 
     try {
-      await axios.post("http://localhost:3000/users/register", {
+      await axios.post(`${API_BASE_URL}/users/register`, {
         firstname,
         lastname,
         username,

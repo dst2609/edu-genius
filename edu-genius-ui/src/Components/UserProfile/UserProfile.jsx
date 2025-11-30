@@ -17,6 +17,8 @@ import {
 import axios from "axios";
 import "./UserProfile.css";
 
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL.replace(/\/+$/, "");
+
 const UserProfile = () => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -44,14 +46,11 @@ const UserProfile = () => {
           return;
         }
 
-        const response = await axios.get(
-          "http://localhost:3000/users/profile",
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          }
-        );
+        const response = await axios.get(`${API_BASE_URL}/users/profile`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
 
         setUser(response.data);
         setFormData({
@@ -87,7 +86,7 @@ const UserProfile = () => {
     try {
       const token = localStorage.getItem("token");
       await axios.put(
-        "http://localhost:3000/users/profile",
+        `${API_BASE_URL}/users/profile`,
         {
           firstname: formData.firstname,
           lastname: formData.lastname,
@@ -153,12 +152,16 @@ const UserProfile = () => {
 
       <Box className="profile-main">
         {isEditing ? (
-          <Box component="form" onSubmit={handleSubmit} className="profile-form">
+          <Box
+            component="form"
+            onSubmit={handleSubmit}
+            className="profile-form"
+          >
             <Box className="form-section">
               <Typography variant="h6" className="section-title">
                 ✏️ Edit Profile Information
               </Typography>
-              
+
               <Box className="edit-container">
                 {/* Profile Picture - Left Side */}
                 <Box className="edit-picture-section">
@@ -247,7 +250,9 @@ const UserProfile = () => {
                           onChange={handleInputChange}
                           className="premium-select"
                         >
-                          <MenuItem value="North America">North America</MenuItem>
+                          <MenuItem value="North America">
+                            North America
+                          </MenuItem>
                           <MenuItem value="Central/South America">
                             Central/South America
                           </MenuItem>
@@ -275,11 +280,7 @@ const UserProfile = () => {
               </Box>
 
               <Box className="edit-actions">
-                <Button
-                  type="submit"
-                  variant="contained"
-                  className="btn-save"
-                >
+                <Button type="submit" variant="contained" className="btn-save">
                   Save Changes
                 </Button>
                 <Button
@@ -311,7 +312,7 @@ const UserProfile = () => {
               </Button>
             </Box>
 
-            <Grid container spacing={3} sx={{ alignItems: 'center' }}>
+            <Grid container spacing={3} sx={{ alignItems: "center" }}>
               <Grid item xs={12} md={5}>
                 <Box className="profile-picture-card">
                   <Box
@@ -331,55 +332,132 @@ const UserProfile = () => {
               </Grid>
 
               <Grid item xs={12} md={7}>
-                <Box className="profile-info-section" sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
-                  <Typography variant="h6" className="section-title" sx={{ mb: 2, textDecoration: 'none !important', borderBottom: 'none !important' }}>
+                <Box
+                  className="profile-info-section"
+                  sx={{
+                    height: "100%",
+                    display: "flex",
+                    flexDirection: "column",
+                  }}
+                >
+                  <Typography
+                    variant="h6"
+                    className="section-title"
+                    sx={{
+                      mb: 2,
+                      textDecoration: "none !important",
+                      borderBottom: "none !important",
+                    }}
+                  >
                     📋 Profile Information
                   </Typography>
-                  <Box className="info-grid" sx={{ 
-                    display: 'grid', 
-                    gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)' },
-                    gap: 2,
-                    flex: 1
-                  }}>
+                  <Box
+                    className="info-grid"
+                    sx={{
+                      display: "grid",
+                      gridTemplateColumns: { xs: "1fr", sm: "repeat(2, 1fr)" },
+                      gap: 2,
+                      flex: 1,
+                    }}
+                  >
                     <Box className="info-item" sx={{ mb: 1 }}>
-                      <Typography className="info-label" sx={{ fontSize: '0.875rem', mb: 0.5 }}>First Name</Typography>
-                      <Typography className="info-value" sx={{ fontSize: '1rem' }}>
+                      <Typography
+                        className="info-label"
+                        sx={{ fontSize: "0.875rem", mb: 0.5 }}
+                      >
+                        First Name
+                      </Typography>
+                      <Typography
+                        className="info-value"
+                        sx={{ fontSize: "1rem" }}
+                      >
                         {user?.firstname || "Not provided"}
                       </Typography>
                     </Box>
                     <Box className="info-item" sx={{ mb: 1 }}>
-                      <Typography className="info-label" sx={{ fontSize: '0.875rem', mb: 0.5 }}>Last Name</Typography>
-                      <Typography className="info-value" sx={{ fontSize: '1rem' }}>
+                      <Typography
+                        className="info-label"
+                        sx={{ fontSize: "0.875rem", mb: 0.5 }}
+                      >
+                        Last Name
+                      </Typography>
+                      <Typography
+                        className="info-value"
+                        sx={{ fontSize: "1rem" }}
+                      >
                         {user?.lastname || "Not provided"}
                       </Typography>
                     </Box>
                     <Box className="info-item" sx={{ mb: 1 }}>
-                      <Typography className="info-label" sx={{ fontSize: '0.875rem', mb: 0.5 }}>Username</Typography>
-                      <Typography className="info-value" sx={{ fontSize: '1rem' }}>
+                      <Typography
+                        className="info-label"
+                        sx={{ fontSize: "0.875rem", mb: 0.5 }}
+                      >
+                        Username
+                      </Typography>
+                      <Typography
+                        className="info-value"
+                        sx={{ fontSize: "1rem" }}
+                      >
                         {user?.username || "Not provided"}
                       </Typography>
                     </Box>
                     <Box className="info-item" sx={{ mb: 1 }}>
-                      <Typography className="info-label" sx={{ fontSize: '0.875rem', mb: 0.5 }}>Email</Typography>
-                      <Typography className="info-value" sx={{ fontSize: '1rem' }}>
+                      <Typography
+                        className="info-label"
+                        sx={{ fontSize: "0.875rem", mb: 0.5 }}
+                      >
+                        Email
+                      </Typography>
+                      <Typography
+                        className="info-value"
+                        sx={{ fontSize: "1rem" }}
+                      >
                         {user?.email || "Not provided"}
                       </Typography>
                     </Box>
                     <Box className="info-item" sx={{ mb: 1 }}>
-                      <Typography className="info-label" sx={{ fontSize: '0.875rem', mb: 0.5 }}>Grade Level</Typography>
-                      <Typography className="info-value" sx={{ fontSize: '1rem' }}>
+                      <Typography
+                        className="info-label"
+                        sx={{ fontSize: "0.875rem", mb: 0.5 }}
+                      >
+                        Grade Level
+                      </Typography>
+                      <Typography
+                        className="info-value"
+                        sx={{ fontSize: "1rem" }}
+                      >
                         {user?.gradeLevel || "Not provided"}
                       </Typography>
                     </Box>
                     <Box className="info-item" sx={{ mb: 1 }}>
-                      <Typography className="info-label" sx={{ fontSize: '0.875rem', mb: 0.5 }}>Region</Typography>
-                      <Typography className="info-value" sx={{ fontSize: '1rem' }}>
+                      <Typography
+                        className="info-label"
+                        sx={{ fontSize: "0.875rem", mb: 0.5 }}
+                      >
+                        Region
+                      </Typography>
+                      <Typography
+                        className="info-value"
+                        sx={{ fontSize: "1rem" }}
+                      >
                         {user?.region || "Not provided"}
                       </Typography>
                     </Box>
-                    <Box className="info-item" sx={{ mb: 1, gridColumn: { sm: 'span 2' } }}>
-                      <Typography className="info-label" sx={{ fontSize: '0.875rem', mb: 0.5 }}>Joined</Typography>
-                      <Typography className="info-value" sx={{ fontSize: '1rem' }}>
+                    <Box
+                      className="info-item"
+                      sx={{ mb: 1, gridColumn: { sm: "span 2" } }}
+                    >
+                      <Typography
+                        className="info-label"
+                        sx={{ fontSize: "0.875rem", mb: 0.5 }}
+                      >
+                        Joined
+                      </Typography>
+                      <Typography
+                        className="info-value"
+                        sx={{ fontSize: "1rem" }}
+                      >
                         {user?.createdAt
                           ? new Date(user.createdAt).toLocaleDateString()
                           : "Not available"}
