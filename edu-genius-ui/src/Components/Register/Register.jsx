@@ -20,6 +20,7 @@ const Register = () => {
   const [password, setPassword] = useState("");
   const [gradeLevel, setGradeLevel] = useState("");
   const [region, setRegion] = useState("");
+  const [role, setRole] = useState("student");
   const [error, setError] = useState(null);
   const navigate = useNavigate();
 
@@ -31,7 +32,8 @@ const Register = () => {
       !email ||
       !password ||
       !gradeLevel ||
-      !region
+      !region ||
+      !role
     ) {
       setError("Please fill out all fields");
       return;
@@ -46,6 +48,7 @@ const Register = () => {
         password,
         gradeLevel,
         region,
+        role,
       });
       navigate("/login");
     } catch (error) {
@@ -104,6 +107,18 @@ const Register = () => {
             onChange={(e) => setGradeLevel(e.target.value)}
             required
           />
+          <FormControl fullWidth sx={{ mb: "14px" }}>
+            <InputLabel>Role</InputLabel>
+            <Select
+              value={role}
+              label="Role"
+              onChange={(e) => setRole(e.target.value)}
+              required
+            >
+              <MenuItem value="student">Student</MenuItem>
+              <MenuItem value="instructor">Instructor</MenuItem>
+            </Select>
+          </FormControl>
           <FormControl fullWidth sx={{ mb: "14px" }}>
             <InputLabel>Region</InputLabel>
             <Select

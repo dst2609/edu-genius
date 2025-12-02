@@ -63,10 +63,17 @@ const userController = {
       const hashedPassword = await bcrypt.hash(req.body.password, salt);
 
       const placeholderImage = "https://picsum.photos/200/300";
+      const role = req.body.role || "student";
+
+      // Validate role
+      if (!["student", "instructor"].includes(role)) {
+        return res.status(400).json({ error: "Invalid role. Must be 'student' or 'instructor'" });
+      }
 
       const newUser = {
         _id: new ObjectId(),
         ...req.body,
+        role,
         password: hashedPassword,
         profilePicture: req.body.profilePicture || placeholderImage,
         createdAt: new Date(),
@@ -108,7 +115,7 @@ const userController = {
       }
 
       const token = jwt.sign(
-        { _id: user._id.toString() },
+        { _id: user._id.toString(), role: user.role || "student" },
         process.env.JWT_SECRET,
         {
           expiresIn: "1h",
@@ -116,7 +123,7 @@ const userController = {
       );
       console.log("token is: ", token);
 
-      res.status(200).json({ token, message: "Logged in successfully" });
+      res.status(200).json({ token, role: user.role || "student", message: "Logged in successfully" });
     } catch (err) {
       console.error("Failed to login user: ", err);
       res.status(500).json({ error: "Failed to login user" });

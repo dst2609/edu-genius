@@ -7,6 +7,11 @@ chat_ui/backend/.env.*.local
 chat_ui/backend/dist/
 chat_ui/backend/coverage/
 
+# === Edu Genius API ===
+edu-genius-api/node_modules/
+edu-genius-api/.env
+edu-genius-api/uploads/
+
 # === React / Frontend (Vite) ===
 chat_ui/frontend/node_modules/
 chat_ui/frontend/package-lock.json
@@ -16,6 +21,10 @@ chat_ui/frontend/.env.*.local
 chat_ui/frontend/dist/
 chat_ui/frontend/.vite/
 chat_ui/frontend/coverage/
+
+# === Edu Genius UI ===
+edu-genius-ui/node_modules/
+edu-genius-ui/.env
 
 # === Logs ===
 *.log

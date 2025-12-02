@@ -13,6 +13,8 @@ import UserProfile from "./Components/UserProfile/UserProfile";
 import Chatbot from "./Components/Chatbot/Chatbot.jsx";
 import LandingPage from "./Components/LandingPage/LandingPage";
 import Contact from "./Components/Contact/Contact";
+import Announcements from "./Components/Announcements/Announcements";
+import Materials from "./Components/Materials/Materials";
 import { Button, Box, Container } from "@mui/material";
 
 const App = () => {
@@ -28,6 +30,8 @@ const App = () => {
         <Route path="/profile" element={<UserProfile />} />
         <Route path="/chat" element={<Chatbot />} />
         <Route path="/contact" element={<Contact />} />
+        <Route path="/announcements" element={<Announcements />} />
+        <Route path="/materials" element={<Materials />} />
       </Routes>
     </Router>
   );

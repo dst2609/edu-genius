@@ -7,6 +7,8 @@ const mongoURI = process.env.MONGO_URI;
 
 let db;
 let usersCollection;
+let announcementsCollection;
+let materialsCollection;
 
 async function connectToDB() {
   try {
@@ -36,12 +38,58 @@ async function createUsersCollection() {
   }
 }
 
+async function createAnnouncementsCollection() {
+  try {
+    announcementsCollection = db.collection("announcements");
+    const collections = await db.listCollections().toArray();
+    const collectionExists = collections.some(
+      (collection) => collection.name === "announcements"
+    );
+    if (!collectionExists) {
+      await announcementsCollection.createIndex({ createdAt: -1 });
+      console.log("announcements collection created");
+    }
+  } catch (err) {
+    console.error("Failed to create announcements collection:", err);
+    process.exit(1);
+  }
+}
+
+async function createMaterialsCollection() {
+  try {
+    materialsCollection = db.collection("materials");
+    const collections = await db.listCollections().toArray();
+    const collectionExists = collections.some(
+      (collection) => collection.name === "materials"
+    );
+    if (!collectionExists) {
+      await materialsCollection.createIndex({ courseId: 1, createdAt: -1 });
+      console.log("materials collection created");
+    }
+  } catch (err) {
+    console.error("Failed to create materials collection:", err);
+    process.exit(1);
+  }
+}
+
 function getUsersCollection() {
   return usersCollection;
+}
+
+function getAnnouncementsCollection() {
+  return announcementsCollection;
+}
+
+function getMaterialsCollection() {
+  return materialsCollection;
 }
 
 module.exports = {
   connectToDB,
   createUsersCollection,
+  createAnnouncementsCollection,
+  createMaterialsCollection,
   getUsersCollection,
+  getAnnouncementsCollection,
+  getMaterialsCollection,
 };
