@@ -11,6 +11,11 @@ const truncateTitle = (prompt = "") => {
   return `${trimmed.slice(0, 57)}…`;
 };
 
+const normalizeTitle = (title = "") => {
+  const trimmed = title.trim();
+  return trimmed || DEFAULT_TITLE;
+};
+
 /**
  * Create a conversation.
  * Optionally pass { courseId, courseName } if you want to create it already linked to a course.
@@ -128,6 +133,43 @@ const saveChatMessage = async ({ conversationId, userId, prompt, response }) => 
 };
 
 /**
+ * Update a conversation title, ensuring ownership.
+ */
+const updateConversationTitle = async (conversationId, userId, title) => {
+  try {
+    const newTitle = normalizeTitle(title);
+
+    const conversation = await prisma.conversation.findFirst({
+      where: { id: conversationId, userId },
+    });
+
+    if (!conversation) {
+      const err = new Error("Conversation not found");
+      err.status = 404;
+      throw err;
+    }
+
+    const updated = await prisma.conversation.update({
+      where: { id: conversationId },
+      data: { title: newTitle },
+    });
+
+    return {
+      id: updated.id,
+      userId: updated.userId,
+      title: updated.title,
+      courseId: updated.courseId || null,
+      courseName: updated.courseName || null,
+      createdAt: updated.createdAt,
+      updatedAt: updated.updatedAt,
+    };
+  } catch (error) {
+    console.error("Error updating conversation title:", error);
+    throw error;
+  }
+};
+
+/**
  * Delete a conversation and its messages.
  */
 const deleteConversation = async (conversationId, userId) => {
@@ -202,6 +244,6 @@ module.exports = {
   getChatHistory,
   saveChatMessage,
   deleteConversation,
-  // NEW
+  updateConversationTitle,
   updateConversationCourse,
 };

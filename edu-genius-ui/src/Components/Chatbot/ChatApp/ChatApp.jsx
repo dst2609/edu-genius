@@ -91,6 +91,13 @@ class ChatApiClient {
     });
   }
 
+  async updateConversationTitle(conversationId, title) {
+    return this.request(`/chat/conversations/${conversationId}`, {
+      method: "PATCH",
+      body: { title },
+    });
+  }
+
   // NEW: link/clear course on a conversation
   async updateConversationCourse(conversationId, { courseId, courseName }) {
     return this.request(`/chat/conversations/${conversationId}/course`, {
@@ -368,6 +375,55 @@ export default function App() {
   };
 
   const onDelete = (id) => setConfirmDelete({ open: true, id });
+
+  const handleRenameConversation = async (id, title) => {
+    const nextTitle = (title || "").trim() || "New Chat";
+    const previous = conversations.find((c) => c.id === id);
+    if (!previous) return;
+
+    // update
+    setConversations((prev) =>
+      sortByUpdatedAtDesc(
+        prev.map((c) =>
+          c.id === id
+            ? { ...c, title: nextTitle, updatedAt: new Date().toISOString() }
+            : c
+        )
+      )
+    );
+
+    try {
+      const resp = await chatApi.updateConversationTitle(id, nextTitle);
+      const updated = resp?.conversation;
+      if (updated) {
+        setConversations((prev) => {
+          const idx = prev.findIndex((c) => c.id === updated.id);
+          if (idx < 0) return prev;
+          const next = [...prev];
+          next[idx] = { ...next[idx], ...updated };
+          return sortByUpdatedAtDesc(next);
+        });
+      }
+    } catch (e) {
+      console.error(e);
+      // revert optimistic change
+      setConversations((prev) => {
+        if (!previous) return prev;
+        const idx = prev.findIndex((c) => c.id === id);
+        if (idx < 0) return prev;
+        const next = [...prev];
+        next[idx] = { ...next[idx], title: previous.title, updatedAt: previous.updatedAt };
+        return sortByUpdatedAtDesc(next);
+      });
+
+      setToast({
+        open: true,
+        message: e.message || "Unable to rename conversation.",
+        actionText: "",
+        onAction: null,
+      });
+    }
+  };
 
   const handleConfirmDelete = async () => {
     const id = confirmDelete.id;
@@ -722,7 +778,7 @@ export default function App() {
       onNewChat={startNewChat}
       onSelect={selectConversation}
       onDelete={onDelete}
-      onRename={() => {}}
+      onRename={handleRenameConversation}
       onRegenerateTitle={() => {}}
       onAddCourse={handleAddCourse}
       isMobile={isMobile}

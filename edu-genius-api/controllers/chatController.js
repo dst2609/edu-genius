@@ -4,6 +4,7 @@ const {
   getChatHistory,
   saveChatMessage,
   deleteConversation,
+  updateConversationTitle,
   updateConversationCourse,
 } = require("../models/chatModel");
 
@@ -250,6 +251,29 @@ const chatHandler = async (req, res) => {
   }
 };
 
+const updateConversationTitleHandler = async (req, res) => {
+  const userId = req.user;
+  const conversationId = req.params.conversationId;
+  const { title } = req.body;
+
+  if (!userId) {
+    return res.status(401).send("Unauthorized");
+  }
+
+  try {
+    const conversation = await updateConversationTitle(
+      conversationId,
+      userId,
+      title
+    );
+    res.json({ conversation });
+  } catch (error) {
+    console.error("Error updating conversation title:", error);
+    const status = error.status || 500;
+    res.status(status).send(error.message || "Failed to update conversation.");
+  }
+};
+
 const createConversationHandler = async (req, res) => {
   const userId = req.user;
   const { title, courseId, courseName } = req.body;
@@ -380,5 +404,6 @@ module.exports = {
   listConversationsHandler,
   getChatHistoryHandler,
   deleteConversationHandler,
+  updateConversationTitleHandler,
   updateConversationCourseHandler,
 };

@@ -8,7 +8,7 @@ export default function Sidebar({
   onDelete,
   onRename,
   onRegenerateTitle,
-  onAddCourse, // (conversationId, course) => void   ⟵ NEW
+  onAddCourse, // (conversationId, course) => void   
   isMobile = false,
 }) {
   const asideClass = isMobile
@@ -46,7 +46,7 @@ export default function Sidebar({
               onDelete={() => onDelete(c.id)}
               onRename={(title) => onRename(c.id, title)}
               onRegenerateTitle={() => onRegenerateTitle(c.id)}
-              onAddCourse={(course) => onAddCourse && onAddCourse(c.id, course)} // ⟵ NEW
+              onAddCourse={(course) => onAddCourse && onAddCourse(c.id, course)} 
             />
           ))
         )}
