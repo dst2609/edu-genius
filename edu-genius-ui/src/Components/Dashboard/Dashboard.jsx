@@ -11,6 +11,7 @@ const Dashboard = () => {
   const [error, setError] = useState(null);
   const [user, setUser] = useState(null);
   const [chatHistory, setChatHistory] = useState([]);
+  const [userRole, setUserRole] = useState(null);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -22,6 +23,10 @@ const Dashboard = () => {
           setLoading(false);
           return;
         }
+
+        // Get user role from localStorage
+        const role = localStorage.getItem("role") || "student";
+        setUserRole(role);
 
         // Profile
         const profileRes = await axios.get(`${API_BASE}/users/profile`, {
@@ -211,7 +216,28 @@ const Dashboard = () => {
       </div>
 
       {/* Right column: courses */}
-      <CoursesSection onError={setError} />
+      <CoursesSection 
+        onError={setError}
+        resourcesSection={
+          <div className="dashboard-resources">
+            <h2>Resources</h2>
+            <Button
+              variant="contained"
+              sx={{ mb: 1, width: "100%" }}
+              onClick={() => navigate("/announcements")}
+            >
+              {userRole === "instructor" ? "Manage Announcements" : "View Announcements"}
+            </Button>
+            <Button
+              variant="contained"
+              sx={{ width: "100%" }}
+              onClick={() => navigate("/materials")}
+            >
+              {userRole === "instructor" ? "Manage Course Materials" : "View Course Materials"}
+            </Button>
+          </div>
+        }
+      />
     </div>
   );
 };

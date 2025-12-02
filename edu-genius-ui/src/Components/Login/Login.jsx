@@ -23,8 +23,9 @@ const Login = ({ setToken }) => {
         email,
         password,
       });
-      const { token } = response.data;
+      const { token, role } = response.data;
       localStorage.setItem("token", token);
+      localStorage.setItem("role", role || "student");
       setToken(token);
       navigate("/dashboard");
     } catch (error) {

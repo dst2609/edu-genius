@@ -74,7 +74,7 @@ const getCardColorClass = (index) => {
   return colors[index % colors.length];
 };
 
-export default function CoursesSection({ onError }) {
+export default function CoursesSection({ onError, resourcesSection }) {
   const navigate = useNavigate();
   const [courses, setCourses] = useState([]);
   const [localError, setLocalError] = useState("");
@@ -475,21 +475,32 @@ export default function CoursesSection({ onError }) {
       <Box
         sx={{
           display: "flex",
-          alignItems: "center",
+          alignItems: "flex-start",
           justifyContent: "space-between",
+          gap: 3,
+          mb: 3,
         }}
       >
-        <h2>Courses</h2>
-        <Button
-          variant="outlined"
-          startIcon={<AddCircleOutlineIcon />}
-          onClick={openAdd}
-        >
-          Add Course
-        </Button>
-      </Box>
+        <Box sx={{ flex: 1 }}>
+          <Box
+            sx={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              mb: 3,
+            }}
+          >
+            <h2>Courses</h2>
+            <Button
+              variant="outlined"
+              startIcon={<AddCircleOutlineIcon />}
+              onClick={openAdd}
+            >
+              Add Course
+            </Button>
+          </Box>
 
-      <div className="courses-list">
+          <div className="courses-list">
         {courses.map((course, idx) => (
           <div
             className={`course-card ${getCardColorClass(idx)}`}
@@ -566,7 +577,12 @@ export default function CoursesSection({ onError }) {
             <p>No courses yet. Click "Add Course" to create one.</p>
           </div>
         )}
-      </div>
+          </div>
+        </Box>
+        
+        {/* Resources Section on the right */}
+        {resourcesSection}
+      </Box>
 
       {/* Add Course */}
       <Dialog open={isAddOpen} onClose={closeAdd} fullWidth maxWidth="sm">
