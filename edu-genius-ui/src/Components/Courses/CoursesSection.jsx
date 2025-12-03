@@ -90,13 +90,11 @@ export default function CoursesSection({ onError, resourcesSection }) {
   const [selectedChats, setSelectedChats] = useState([]);
   const [createNewChat, setCreateNewChat] = useState(false);
 
-  // Edit dialog
+  // Edit dialog (name only)
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [editing, setEditing] = useState(null);
   const [editName, setEditName] = useState("");
-  const [editPercent, setEditPercent] = useState("");
   const [editNameError, setEditNameError] = useState("");
-  const [editPercentError, setEditPercentError] = useState("");
 
   // Course details dialog
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
@@ -132,6 +130,46 @@ export default function CoursesSection({ onError, resourcesSection }) {
     refresh();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // ---- Edit (name only)
+  const openEdit = (course) => {
+    setEditing(course);
+    setEditName(course.name || "");
+    setEditNameError("");
+    setIsEditOpen(true);
+  };
+  const closeEdit = () => {
+    setIsEditOpen(false);
+    setEditing(null);
+  };
+
+  const saveEdit = async () => {
+    if (!editing) return;
+    if (!editName.trim()) {
+      setEditNameError("Course name is required");
+      return;
+    }
+
+    const updated = { ...editing, name: editName.trim() };
+    setCourses((prev) =>
+      prev.map((c) => (c._id === updated._id ? updated : c))
+    );
+    closeEdit();
+
+    try {
+      await updateCourse(updated._id, {
+        name: updated.name,
+        percent: updated.percent,
+      });
+    } catch (e) {
+      reportError(
+        e?.response?.data?.message ||
+          e?.response?.data?.error ||
+          "Failed to update course"
+      );
+      refresh();
+    }
+  };
 
   // ---- Add
   const fetchExistingChats = async () => {
@@ -257,68 +295,6 @@ export default function CoursesSection({ onError, resourcesSection }) {
         "Failed to save course";
       reportError(errorMessage);
       setCourses((prev) => prev.filter((c) => c._id !== optimistic._id));
-    }
-  };
-
-  // ---- Edit
-  const openEdit = (course) => {
-    setEditing(course);
-    setEditName(course.name || "");
-    setEditPercent(String(course.percent ?? ""));
-    setEditNameError("");
-    setEditPercentError("");
-    setIsEditOpen(true);
-  };
-  const closeEdit = () => {
-    setIsEditOpen(false);
-    setEditing(null);
-  };
-
-  const saveEdit = async () => {
-    if (!editing) return;
-
-    let ok = true;
-    if (!editName.trim()) {
-      setEditNameError("Course name is required");
-      ok = false;
-    } else setEditNameError("");
-
-    if (!percentOk(editPercent)) {
-      setEditPercentError("Percent must be a number 0–100");
-      ok = false;
-    } else setEditPercentError("");
-
-    if (!ok) return;
-
-    if (!editing._id || String(editing._id).startsWith("tmp_")) {
-      reportError("Please wait until the course is saved before editing it.");
-      return;
-    }
-
-    const updated = {
-      ...editing,
-      name: editName.trim(),
-      percent: Math.round(Number(editPercent)),
-    };
-
-    setCourses((prev) =>
-      prev.map((c) => (c._id === updated._id ? updated : c))
-    );
-    closeEdit();
-
-    try {
-      await updateCourse(updated._id, {
-        name: updated.name,
-        percent: updated.percent,
-      });
-      await refresh();
-    } catch (e) {
-      reportError(
-        e?.response?.data?.message ||
-          e?.response?.data?.error ||
-          "Failed to update course"
-      );
-      await refresh();
     }
   };
 
@@ -509,7 +485,7 @@ export default function CoursesSection({ onError, resourcesSection }) {
                     <ChatIcon fontSize="small" />
                   </IconButton>
                 </Tooltip>
-                <Tooltip title="Edit">
+                <Tooltip title="Edit name">
                   <IconButton
                     size="small"
                     onClick={() => openEdit(course)}
@@ -640,9 +616,9 @@ export default function CoursesSection({ onError, resourcesSection }) {
         </DialogActions>
       </Dialog>
 
-      {/* Edit Course */}
+      {/* Edit Course Name */}
       <Dialog open={isEditOpen} onClose={closeEdit} fullWidth maxWidth="sm">
-        <DialogTitle>Edit course</DialogTitle>
+        <DialogTitle>Edit course name</DialogTitle>
         <DialogContent sx={{ pt: 2 }}>
           <TextField
             label="Course name"
@@ -652,17 +628,6 @@ export default function CoursesSection({ onError, resourcesSection }) {
             onChange={(e) => setEditName(e.target.value)}
             error={!!editNameError}
             helperText={editNameError || "Update the course name"}
-          />
-          <TextField
-            label="Percent"
-            type="number"
-            fullWidth
-            margin="normal"
-            value={editPercent}
-            onChange={(e) => setEditPercent(e.target.value)}
-            inputProps={{ min: 0, max: 100 }}
-            error={!!editPercentError}
-            helperText={editPercentError || "0–100"}
           />
         </DialogContent>
         <DialogActions>
