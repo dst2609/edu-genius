@@ -127,9 +127,9 @@ const Materials = () => {
   const handleFileChange = (event) => {
     const file = event.target.files[0];
     if (file) {
-      // Check file size (50MB max)
-      if (file.size > 50 * 1024 * 1024) {
-        setError("File size must be less than 50MB");
+      // Check file size (10MB max)
+      if (file.size > 10 * 1024 * 1024) {
+        setError("File size must be less than 10MB");
         return;
       }
       setSelectedFile(file);
@@ -152,7 +152,20 @@ const Materials = () => {
       await axios.delete(`${API_BASE_URL}/materials/${id}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
-      fetchMaterials();
+      
+      // Immediately update the UI without fetching from server
+      setMaterials(prevMaterials => prevMaterials.filter(material => material._id !== id));
+      
+      // If viewing a specific instructor, update their materials too
+      if (selectedInstructor) {
+        setSelectedInstructor(prev => ({
+          ...prev,
+          materials: prev.materials.filter(material => material._id !== id)
+        }));
+      }
+      
+      setSuccessMessage("Material deleted successfully");
+      setTimeout(() => setSuccessMessage(""), 3000);
     } catch (error) {
       setError(error.response?.data?.error || "Failed to delete material");
     }
@@ -316,18 +329,23 @@ const Materials = () => {
                         />
                       )}
                     </Box>
-                    <Typography variant="body2" color="textSecondary" sx={{ mb: 2 }}>
-                      Uploaded: {new Date(material.createdAt).toLocaleDateString()}
-                    </Typography>
-                    <Link
-                      href={material.fileUrl.startsWith("http") ? material.fileUrl : `${API_BASE_URL}${material.fileUrl}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      sx={{ display: "flex", alignItems: "center", gap: 1 }}
-                    >
-                      <DownloadIcon fontSize="small" />
-                      Download/View Material
-                    </Link>
+                      <Typography variant="body2" color="textSecondary" sx={{ mb: 2 }}>
+                        Uploaded: {new Date(material.createdAt).toLocaleDateString()}
+                      </Typography>
+                      <Link
+                        href={`${API_BASE_URL}/materials/download/${material._id}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        sx={{ display: "flex", alignItems: "center", gap: 1 }}
+                        onClick={(e) => {
+                          e.preventDefault();
+                          const token = localStorage.getItem("token");
+                          window.open(`${API_BASE_URL}/materials/download/${material._id}?token=${token}`, '_blank');
+                        }}
+                      >
+                        <DownloadIcon fontSize="small" />
+                        Download/View Material
+                      </Link>
                   </Box>
                   {userRole === "instructor" && (
                     <IconButton
@@ -419,7 +437,7 @@ const Materials = () => {
                 </Box>
               )}
               <Typography variant="caption" color="textSecondary" sx={{ mt: 1, display: "block" }}>
-                Max file size: 50MB. Supported: PDF, DOC, PPT, XLS, TXT, images, videos, archives
+                Max file size: 10MB. Supported: PDF, DOC, PPT, XLS, TXT, images, videos, archives
               </Typography>
             </Box>
           ) : (

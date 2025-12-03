@@ -8,6 +8,7 @@ const {
   uploadMaterialWithFile,
   deleteMaterial,
   fixMaterialsWithoutInstructor,
+  proxyFile,
 } = require("../controllers/materialController");
 
 // Get all materials (accessible to all authenticated users)
@@ -24,5 +25,16 @@ router.post("/", auth, requireRole("instructor"), uploadMaterial);
 
 // Delete material (instructor only)
 router.delete("/:id", auth, requireRole("instructor"), deleteMaterial);
+
+// Proxy file download (accessible to all authenticated users)
+// Support token in query param for direct browser download
+router.get("/download/:id", (req, res, next) => {
+  // Check if token is in query params (for direct browser downloads)
+  const queryToken = req.query.token;
+  if (queryToken && !req.headers.authorization) {
+    req.headers.authorization = `Bearer ${queryToken}`;
+  }
+  next();
+}, auth, proxyFile);
 
 module.exports = router;
