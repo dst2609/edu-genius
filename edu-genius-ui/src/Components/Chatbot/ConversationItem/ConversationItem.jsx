@@ -22,6 +22,7 @@ export default function ConversationItem({
   const [courses, setCourses] = useState([]);
   const [loadingCourses, setLoadingCourses] = useState(false);
   const [coursesError, setCoursesError] = useState(null);
+  const hasCourse = Boolean(convo.courseName);
 
   const containerRef = useRef(null);
   const inputRef = useRef(null);
@@ -170,9 +171,14 @@ export default function ConversationItem({
           {/* + Add Course dropdown trigger */}
           <button
             onClick={toggleAddMenu}
-            className="text-blue-600 hover:text-blue-800 text-sm px-2 py-0.5 rounded-md border border-blue-400 flex items-center gap-1 hover:bg-blue-50"
-            title="Add to Course"
-            aria-label="Add to Course"
+            className={
+              (hasCourse
+                ? "text-emerald-700 hover:text-emerald-900 border-emerald-400 hover:bg-emerald-50"
+                : "text-blue-600 hover:text-blue-800 border-blue-400 hover:bg-blue-50") +
+              " text-sm px-2 py-0.5 rounded-md border flex items-center gap-1"
+            }
+            title={hasCourse ? "Change course" : "Add to Course"}
+            aria-label={hasCourse ? "Change course" : "Add to Course"}
           >
             <svg
               className="w-3 h-3"
@@ -180,14 +186,23 @@ export default function ConversationItem({
               stroke="currentColor"
               viewBox="0 0 24 24"
             >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth="2"
-                d="M12 6v6m0 0v6m0-6h6m-6 0H6"
-              />
+              {hasCourse ? (
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth="2"
+                  d="M5 13l4 4L19 7"
+                />
+              ) : (
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth="2"
+                  d="M12 6v6m0 0v6m0-6h6m-6 0H6"
+                />
+              )}
             </svg>
-            Add to Course
+            {hasCourse ? "Change course" : "Add to Course"}
           </button>
 
           {/* Rename icon */}
@@ -224,7 +239,12 @@ export default function ConversationItem({
       {addOpen && !isEditing && (
         <div className="absolute right-2 top-8 z-20 w-56 rounded-md border bg-white shadow-lg">
           <div className="px-3 py-2 border-b text-xs font-semibold text-neutral-600">
-            Select a Course
+            {hasCourse ? "Change course" : "Select a Course"}
+            {hasCourse && convo.courseName && (
+              <div className="mt-1 text-[11px] font-normal text-neutral-500">
+                Current: {convo.courseName}
+              </div>
+            )}
           </div>
 
           {loadingCourses && (
