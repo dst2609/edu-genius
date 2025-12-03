@@ -29,7 +29,6 @@ const Login = ({ setToken }) => {
       setToken(token);
       navigate("/dashboard");
     } catch (error) {
-      console.log("error: ", error);
       setError(error.response?.data?.error || "Login failed");
     }
   };

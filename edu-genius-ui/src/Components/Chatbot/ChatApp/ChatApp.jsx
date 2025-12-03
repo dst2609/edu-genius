@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from "react";
 import "./ChatApp.css";
 import Sidebar from "../Sidebar/Sidebar.jsx";
 import Spinner from "../Spinner/Spinner.jsx";
+import ConversationAnalytics from "../Analytics/ConversationAnalytics.jsx";
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL.replace(/\/+$/, "");
 
@@ -105,6 +106,12 @@ class ChatApiClient {
       body: { courseId, courseName },
     });
   }
+
+  // Fetch aggregated analytics for conversations/courses
+  async fetchConversationAnalytics(courseId) {
+    const query = courseId && courseId !== "all" ? `?courseId=${courseId}` : "";
+    return this.request(`/chat/analytics${query}`);
+  }
 }
 
 const chatApi = new ChatApiClient(API_BASE_URL);
@@ -167,8 +174,20 @@ export default function App() {
   // NEW: course banner state (reflects active conversation)
   const [selectedCourse, setSelectedCourse] = useState(null);
 
+  // NEW: analytics state
+  const [activeView, setActiveView] = useState("chat"); // "chat" | "analytics"
+  const [courses, setCourses] = useState([]);
+  const [coursesLoading, setCoursesLoading] = useState(false);
+  const [coursesError, setCoursesError] = useState("");
+  const [analyticsCourseId, setAnalyticsCourseId] = useState("all");
+  const [analyticsData, setAnalyticsData] = useState(null);
+  const [analyticsLoading, setAnalyticsLoading] = useState(false);
+  const [analyticsError, setAnalyticsError] = useState("");
+  const [exportBusyId, setExportBusyId] = useState(null);
+
   const listRef = useRef(null);
   const composerRef = useRef(null);
+  const coursesFetchedRef = useRef(false);
 
   const [confirmDelete, setConfirmDelete] = useState({ open: false, id: null });
   const [toast, setToast] = useState({
@@ -178,6 +197,239 @@ export default function App() {
     onAction: null,
   });
   const lastDeletedRef = useRef(null);
+
+  const courseLabel = (courseId) => {
+    if (!courseId || courseId === "all") return "All courses";
+    const course =
+      courses.find((c) => c._id === courseId) ||
+      (selectedCourse && selectedCourse._id === courseId ? selectedCourse : null);
+    return course?.name || "Unassigned";
+  };
+
+  const buildMockAnalytics = (courseId) => {
+    const now = new Date();
+    const courseName = courseLabel(courseId);
+    const convos = conversations.filter((c) =>
+      courseId === "all" ? true : c.courseId === courseId
+    );
+    const safeConvos =
+      convos.length > 0
+        ? convos
+        : [
+            {
+              id: "demo-analytics",
+              title: "Sample conversation",
+              updatedAt: now.toISOString(),
+              courseName,
+            },
+          ];
+
+    const series = Array.from({ length: 7 }).map((_, idx) => {
+      const date = new Date(now);
+      date.setDate(now.getDate() - (6 - idx));
+      const base = Math.max(1, safeConvos.length);
+      const swing = (idx % 3) - 1; // -1, 0, 1
+      return {
+        label: date.toLocaleDateString(undefined, {
+          month: "short",
+          day: "numeric",
+        }),
+        count: Math.max(0, base + swing),
+      };
+    });
+
+    const volumeTotal = series.reduce((sum, d) => sum + d.count, 0);
+    const likes = Math.max(0, safeConvos.length * 4);
+    const dislikes = Math.round(likes * 0.2);
+    const satisfactionRate =
+      likes + dislikes === 0 ? 100 : Math.round((likes / (likes + dislikes)) * 100);
+    const avgLatency = 1200 + safeConvos.length * 180;
+
+    return {
+      courseId,
+      courseName,
+      volume: {
+        total: volumeTotal,
+        perDay: series,
+      },
+      latency: { avgMs: avgLatency },
+      satisfaction: { likes, dislikes, rate: satisfactionRate },
+      conversations: safeConvos.map((c, idx) => ({
+        id: c.id || `demo-${idx}`,
+        title: c.title || "New Chat",
+        updatedAt: c.updatedAt || now.toISOString(),
+        shareUrl: `${window.location.origin}/share/${c.id || `demo-${idx}`}`,
+      })),
+      source: "mock",
+    };
+  };
+
+  const loadAnalytics = async (courseId) => {
+    if (!token) return;
+    setAnalyticsLoading(true);
+    setAnalyticsError("");
+    try {
+      const res = await chatApi.fetchConversationAnalytics(courseId);
+      setAnalyticsData({
+        courseId: res?.courseId ?? courseId,
+        courseName: res?.courseName ?? courseLabel(courseId),
+        volume:
+          res?.volume ??
+          ({
+            total: res?.totalVolume ?? 0,
+            perDay: res?.perDay ?? [],
+          } || {}),
+        latency: res?.latency ?? { avgMs: res?.avgLatency ?? null },
+        satisfaction:
+          res?.satisfaction ??
+          {
+            likes: res?.likes ?? 0,
+            dislikes: res?.dislikes ?? 0,
+            rate: res?.satisfactionRate ?? 0,
+          },
+        conversations:
+          res?.conversations?.length > 0
+            ? res.conversations.map((c, idx) => ({
+                id: c.id || c._id || `conv-${idx}`,
+                title: c.title || c.name || "Conversation",
+                updatedAt: c.updatedAt || c.lastMessageAt || null,
+                shareUrl: c.shareUrl || c.shareLink || null,
+              }))
+            : [],
+        source: "api",
+      });
+    } catch (e) {
+      const fallback = buildMockAnalytics(courseId);
+      setAnalyticsData(fallback);
+      setAnalyticsError(
+        e?.message ? `Analytics unavailable: ${e.message}. Showing sample data.` : "Analytics unavailable. Showing sample data."
+      );
+    } finally {
+      setAnalyticsLoading(false);
+    }
+  };
+
+  const fetchCoursesList = async () => {
+    if (!token) return;
+    setCoursesLoading(true);
+    setCoursesError("");
+    try {
+      const res = await fetch(`${API_BASE_URL}/courses`, {
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+      });
+      if (!res.ok) {
+        const msg = await res.text();
+        throw new Error(msg || `Failed to fetch courses (${res.status})`);
+      }
+      const data = await res.json();
+      setCourses(Array.isArray(data?.courses) ? data.courses : []);
+      coursesFetchedRef.current = true;
+    } catch (e) {
+      setCoursesError(e?.message || "Unable to load courses.");
+      setCourses([]);
+    } finally {
+      setCoursesLoading(false);
+    }
+  };
+
+  const exportConversation = async (conversationId, format) => {
+    setExportBusyId(conversationId);
+    const downloadFile = (content, mime, filename) => {
+      const blob = new Blob([content], { type: mime });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = filename;
+      link.click();
+      URL.revokeObjectURL(url);
+    };
+
+    try {
+      const messages = await chatApi.getMessages(conversationId);
+      const rows = (messages || []).map((m, idx) => ({
+        role: m.role || "assistant",
+        content: (m.content || "").replace(/\n/g, " "),
+        timestamp: m.createdAt || m.timestamp || new Date().toISOString(),
+        idx,
+      }));
+
+      if (format === "csv") {
+        const csv = [
+          "role,timestamp,message",
+          ...rows.map(
+            (r) =>
+              `"${r.role}","${new Date(r.timestamp).toISOString()}","${r.content.replace(
+                /"/g,
+                '""'
+              )}"`
+          ),
+        ].join("\n");
+        downloadFile(csv, "text/csv", `conversation-${conversationId}.csv`);
+      } else {
+        const pdfLike = [
+          "Conversation Transcript (placeholder PDF)",
+          `Conversation ID: ${conversationId}`,
+          `Generated: ${new Date().toLocaleString()}`,
+          "",
+          ...rows.map(
+            (r) =>
+              `[${new Date(r.timestamp).toLocaleString()}] ${r.role}: ${r.content}`
+          ),
+          "",
+          "Note: Generated locally; replace with backend PDF export when available.",
+        ].join("\n");
+        downloadFile(pdfLike, "application/pdf", `conversation-${conversationId}.pdf`);
+      }
+
+      setToast({
+        open: true,
+        message: `Exported ${format.toUpperCase()} for conversation.`,
+        actionText: "",
+        onAction: null,
+      });
+    } catch (e) {
+      setToast({
+        open: true,
+        message: e?.message || "Failed to export transcript.",
+        actionText: "",
+        onAction: null,
+      });
+    } finally {
+      setExportBusyId(null);
+    }
+  };
+
+  const handleShareLink = async (conversationId, shareUrl) => {
+    const url =
+      shareUrl ||
+      `${window.location.origin}/share/${conversationId || "conversation"}`;
+    try {
+      if (!navigator?.clipboard) {
+        throw new Error("Clipboard unavailable. Please copy manually.");
+      }
+      await navigator.clipboard.writeText(url);
+      setToast({
+        open: true,
+        message: "Share link copied to clipboard.",
+        actionText: "",
+        onAction: null,
+      });
+    } catch (e) {
+      setToast({
+        open: true,
+        message: e?.message || "Unable to copy share link.",
+        actionText: "",
+        onAction: null,
+      });
+    }
+  };
+
+  const handleAnalyticsCourseChange = (courseId) => {
+    setAnalyticsCourseId(courseId);
+  };
 
   /* ───────────────── Responsive helpers ───────────────── */
   useEffect(() => {
@@ -234,7 +486,6 @@ export default function App() {
         }
       } catch (e) {
         if (cancelled) return;
-        console.error(e);
         setToast({
           open: true,
           message: e.message || "Unable to load conversations.",
@@ -251,6 +502,26 @@ export default function App() {
       cancelled = true;
     };
   }, [token]);
+
+  // Kick off course list + analytics fetch when entering the analytics view
+  useEffect(() => {
+    if (activeView !== "analytics" || !token) return;
+    if (!coursesFetchedRef.current) {
+      fetchCoursesList();
+    }
+  }, [activeView, token]);
+
+  useEffect(() => {
+    if (activeView !== "analytics" || !token) return;
+    loadAnalytics(analyticsCourseId);
+  }, [activeView, analyticsCourseId, token]);
+
+  useEffect(() => {
+    if (activeView !== "analytics") return;
+    if (selectedCourse?._id && analyticsCourseId === "all") {
+      setAnalyticsCourseId(selectedCourse._id);
+    }
+  }, [activeView, selectedCourse, analyticsCourseId]);
 
   /* ───────────────── Load messages on active change ───────────────── */
   useEffect(() => {
@@ -286,7 +557,6 @@ export default function App() {
         );
       } catch (e) {
         if (cancelled) return;
-        console.error(e);
         setToast({
           open: true,
           message: e.message || "Unable to load chat history.",
@@ -310,9 +580,7 @@ export default function App() {
     const mathJax = window.MathJax;
     if (!mathJaxReady.current || !mathJax?.typesetPromise) return;
 
-    mathJax
-      .typesetPromise([listRef.current])
-      .catch((err) => console.warn("MathJax rendering failed", err));
+    mathJax.typesetPromise([listRef.current]).catch(() => {});
   }, [messages]);
 
   useEffect(() => {
@@ -321,9 +589,7 @@ export default function App() {
 
     const markReadyAndTypeset = () => {
       mathJaxReady.current = true;
-      window.MathJax?.typesetPromise?.([listRef.current]).catch((err) =>
-        console.warn("MathJax initial render failed", err)
-      );
+      window.MathJax?.typesetPromise?.([listRef.current]).catch(() => {});
     };
 
     if (window.MathJax?.typesetPromise) {
@@ -364,7 +630,6 @@ export default function App() {
         setSidebarOpen(false);
       }
     } catch (e) {
-      console.error(e);
       setToast({
         open: true,
         message: e.message || "Unable to create a new chat.",
@@ -405,7 +670,6 @@ export default function App() {
         });
       }
     } catch (e) {
-      console.error(e);
       // revert optimistic change
       setConversations((prev) => {
         if (!previous) return prev;
@@ -458,20 +722,19 @@ export default function App() {
         setSelectedCourse(null);
       }
 
-      lastDeletedRef.current = removed ? { convo: removed } : null;
-      setToast({
-        open: true,
-        message: "Conversation deleted.",
-        actionText: "Undo",
-        onAction: handleUndoDelete,
-      });
-    } catch (e) {
-      console.error(e);
-      setToast({
-        open: true,
-        message: e.message || "Unable to delete conversation.",
-        actionText: "",
-        onAction: null,
+    lastDeletedRef.current = removed ? { convo: removed } : null;
+    setToast({
+      open: true,
+      message: "Conversation deleted.",
+      actionText: "Undo",
+      onAction: handleUndoDelete,
+    });
+  } catch (e) {
+    setToast({
+      open: true,
+      message: e.message || "Unable to delete conversation.",
+      actionText: "",
+      onAction: null,
       });
     }
   };
@@ -494,7 +757,6 @@ export default function App() {
       setSelectedCourse(null);
       lastDeletedRef.current = null;
     } catch (e) {
-      console.error(e);
       setToast({
         open: true,
         message: e.message || "Unable to restore conversation.",
@@ -595,7 +857,6 @@ export default function App() {
         setActiveId(resp.conversationId);
       }
     } catch (e) {
-      console.error(e);
       setMessages((m) => [
         ...m,
         {
@@ -694,7 +955,6 @@ export default function App() {
         onAction: null,
       });
     } catch (e) {
-      console.error(e);
       setNewCourseDialog((prev) => ({
         ...prev,
         error: e.message || "Failed to create course",
@@ -752,7 +1012,6 @@ export default function App() {
         onAction: null,
       });
     } catch (e) {
-      console.error(e);
       setToast({
         open: true,
         message: e.message || "Unable to update conversation course.",
@@ -815,147 +1074,209 @@ export default function App() {
           </>
         )}
 
-        {/* Main Chat */}
+        {/* Main Area */}
         <div className="flex-1 flex flex-col min-h-0">
           <header className="chat-topbar h-12 px-3 sm:px-4 flex items-center justify-between text-xs text-gray-500">
-            {isMobile && (
-              <button
-                className="chat-menu-button"
-                onClick={() => setSidebarOpen(true)}
-                aria-label="Open conversation list"
-              >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  viewBox="0 0 24 24"
-                  width="20"
-                  height="20"
-                  fill="currentColor"
+            <div className="flex items-center gap-3">
+              {isMobile && (
+                <button
+                  className="chat-menu-button"
+                  onClick={() => setSidebarOpen(true)}
+                  aria-label="Open conversation list"
                 >
-                  <path d="M3 6h18v2H3V6zm0 5h18v2H3v-2zm0 5h18v2H3v-2z" />
-                </svg>
-              </button>
-            )}
-            <div className="flex-1 flex justify-end">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    viewBox="0 0 24 24"
+                    width="20"
+                    height="20"
+                    fill="currentColor"
+                  >
+                    <path d="M3 6h18v2H3V6zm0 5h18v2H3v-2zm0 5h18v2H3v-2z" />
+                  </svg>
+                </button>
+              )}
+
+              <div className="flex rounded-full border bg-white overflow-hidden">
+                <button
+                  onClick={() => setActiveView("chat")}
+                  className={
+                    "px-3 py-1 text-[11px] sm:text-xs " +
+                    (activeView === "chat"
+                      ? "bg-indigo-600 text-white"
+                      : "text-gray-700 hover:bg-gray-100")
+                  }
+                  aria-label="Chat view"
+                >
+                  Chat
+                </button>
+                <button
+                  onClick={() => setActiveView("analytics")}
+                  className={
+                    "px-3 py-1 text-[11px] sm:text-xs " +
+                    (activeView === "analytics"
+                      ? "bg-indigo-600 text-white"
+                      : "text-gray-700 hover:bg-gray-100")
+                  }
+                  aria-label="Analytics view"
+                >
+                  Analytics
+                </button>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-3">
+              {activeView === "analytics" && (
+                <button
+                  onClick={() => loadAnalytics(analyticsCourseId)}
+                  className="text-[11px] sm:text-xs px-3 py-1 rounded-full border text-gray-700 hover:bg-gray-100"
+                  title="Refresh analytics"
+                  aria-label="Refresh analytics"
+                >
+                  Refresh
+                </button>
+              )}
               <div className="opacity-75">Role: {role}</div>
             </div>
           </header>
 
-          {/* Course banner (centered) */}
-          {selectedCourse && (
-            <div className="flex justify-center px-4">
-              <div className="my-3 inline-flex items-center gap-2 rounded-full border border-indigo-200 bg-indigo-50 px-4 py-1.5 text-indigo-700">
-                <span className="text-xs opacity-70">Course:</span>
-                <span className="font-medium text-sm">
-                  {selectedCourse.name}
-                </span>
-                <button
-                  onClick={() => handleAddCourse(activeId, null)}
-                  className="ml-1 text-xs text-indigo-500 hover:text-indigo-700"
-                  title="Clear selected course"
-                  aria-label="Clear selected course"
-                >
-                  ×
-                </button>
-              </div>
-            </div>
-          )}
-
-          <div className="flex-1 flex flex-col min-h-0">
-            {/* Messages */}
-            <div ref={listRef} className="flex-1 overflow-auto">
-              <div className="w-full px-4 sm:px-6 md:px-10 lg:px-16 py-4 space-y-3">
-                {initializing && (
-                  <div className="flex justify-start text-gray-500 text-sm pt-10">
-                    <Spinner />
+          {activeView === "chat" ? (
+            <>
+              {/* Course banner (centered) */}
+              {selectedCourse && (
+                <div className="flex justify-center px-4">
+                  <div className="my-3 inline-flex items-center gap-2 rounded-full border border-indigo-200 bg-indigo-50 px-4 py-1.5 text-indigo-700">
+                    <span className="text-xs opacity-70">Course:</span>
+                    <span className="font-medium text-sm">
+                      {selectedCourse.name}
+                    </span>
+                    <button
+                      onClick={() => handleAddCourse(activeId, null)}
+                      className="ml-1 text-xs text-indigo-500 hover:text-indigo-700"
+                      title="Clear selected course"
+                      aria-label="Clear selected course"
+                    >
+                      ×
+                    </button>
                   </div>
-                )}
+                </div>
+              )}
 
-                {messages.length === 0 &&
-                  !loading &&
-                  !historyLoading &&
-                  !initializing && (
-                    <div className="text-gray-500 text-sm pt-10">
-                      Start a conversation. Example:{" "}
-                      <em>“Explain the Pythagorean theorem.”</em>
-                    </div>
-                  )}
-
-                {messages.map((m, idx) => (
-                  <div
-                    key={idx}
-                    className={
-                      "flex " +
-                      (m.role === "user" ? "justify-end" : "justify-start")
-                    }
-                  >
-                    <div
-                      className={
-                        "max-w-[90%] sm:max-w-[80%] lg-max-w-[70%] px-4 py-2 rounded-2xl text-sm leading-6 message-content " +
-                        (m.role === "user"
-                          ? "bg-indigo-600 text-white"
-                          : "bg-gray-100 text-gray-900")
-                      }
-                      dangerouslySetInnerHTML={{
-                        __html: formatMessageContent(m.content),
-                      }}
-                    />
-                  </div>
-                ))}
-
-                {(loading || historyLoading) && (
-                  <div className="flex justify-start">
-                    <div className="px-3 py-2 rounded-2xl bg-gray-100 text-gray-900">
-                      <Spinner />
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* Composer */}
-            <div
-              ref={composerRef}
-              className="sticky bottom-0 px-4 sm:px-6 md:px-10 lg:px-16 pb-[max(16px,env(safe-area-inset-bottom))] pt-3 bg-gradient-to-t from-white via-white/80 to-transparent"
-            >
-              <div className="w-full">
-                <div className="flex items-end gap-2 rounded-full ring-1 ring-gray-300 bg-white shadow-sm focus-within:ring-2 focus-within:ring-indigo-500">
-                  <textarea
-                    value={input}
-                    onChange={(e) => setInput(e.target.value)}
-                    onKeyDown={onKeyDown}
-                    onFocus={ensureComposerVisible}
-                    placeholder="Ask anything"
-                    className="flex-1 resize-none outline-none bg-transparent border-0 px-4 py-3 min-h-[44px] max-h-40 text-gray-900 placeholder:text-gray-400"
-                    rows={1}
-                    disabled={loading || historyLoading || initializing}
-                  />
-                  <button
-                    onClick={send}
-                    disabled={
-                      loading || historyLoading || initializing || !input.trim()
-                    }
-                    className="m-1 mr-2 h-10 w-10 rounded-full flex items-center justify-center bg-gray-100 hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed"
-                    title="Send"
-                  >
-                    {loading ? (
-                      <Spinner />
-                    ) : (
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        viewBox="0 0 24 24"
-                        className="h-5 w-5"
-                      >
-                        <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z" />
-                      </svg>
+              <div className="flex-1 flex flex-col min-h-0">
+                {/* Messages */}
+                <div ref={listRef} className="flex-1 overflow-auto">
+                  <div className="w-full px-4 sm:px-6 md:px-10 lg:px-16 py-4 space-y-3">
+                    {initializing && (
+                      <div className="flex justify-start text-gray-500 text-sm pt-10">
+                        <Spinner />
+                      </div>
                     )}
-                  </button>
+
+                    {messages.length === 0 &&
+                      !loading &&
+                      !historyLoading &&
+                      !initializing && (
+                        <div className="text-gray-500 text-sm pt-10">
+                          Start a conversation. Example:{" "}
+                          <em>“Explain the Pythagorean theorem.”</em>
+                        </div>
+                      )}
+
+                    {messages.map((m, idx) => (
+                      <div
+                        key={idx}
+                        className={
+                          "flex " +
+                          (m.role === "user" ? "justify-end" : "justify-start")
+                        }
+                      >
+                        <div
+                          className={
+                            "max-w-[90%] sm:max-w-[80%] lg-max-w-[70%] px-4 py-2 rounded-2xl text-sm leading-6 message-content " +
+                            (m.role === "user"
+                              ? "bg-indigo-600 text-white"
+                              : "bg-gray-100 text-gray-900")
+                          }
+                          dangerouslySetInnerHTML={{
+                            __html: formatMessageContent(m.content),
+                          }}
+                        />
+                      </div>
+                    ))}
+
+                    {(loading || historyLoading) && (
+                      <div className="flex justify-start">
+                        <div className="px-3 py-2 rounded-2xl bg-gray-100 text-gray-900">
+                          <Spinner />
+                        </div>
+                      </div>
+                    )}
+                  </div>
                 </div>
-                <div className="mt-2 text-[11px] text-gray-400 text-center">
-                  {APP_NAME} can make mistakes — verify important info.
+
+                {/* Composer */}
+                <div
+                  ref={composerRef}
+                  className="sticky bottom-0 px-4 sm:px-6 md:px-10 lg:px-16 pb-[max(16px,env(safe-area-inset-bottom))] pt-3 bg-gradient-to-t from-white via-white/80 to-transparent"
+                >
+                  <div className="w-full">
+                    <div className="flex items-end gap-2 rounded-full ring-1 ring-gray-300 bg-white shadow-sm focus-within:ring-2 focus-within:ring-indigo-500">
+                      <textarea
+                        value={input}
+                        onChange={(e) => setInput(e.target.value)}
+                        onKeyDown={onKeyDown}
+                        onFocus={ensureComposerVisible}
+                        placeholder="Ask anything"
+                        className="flex-1 resize-none outline-none bg-transparent border-0 px-4 py-3 min-h-[44px] max-h-40 text-gray-900 placeholder:text-gray-400"
+                        rows={1}
+                        disabled={loading || historyLoading || initializing}
+                      />
+                      <button
+                        onClick={send}
+                        disabled={
+                          loading ||
+                          historyLoading ||
+                          initializing ||
+                          !input.trim()
+                        }
+                        className="m-1 mr-2 h-10 w-10 rounded-full flex items-center justify-center bg-gray-100 hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                        title="Send"
+                      >
+                        {loading ? (
+                          <Spinner />
+                        ) : (
+                          <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            viewBox="0 0 24 24"
+                            className="h-5 w-5"
+                          >
+                            <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z" />
+                          </svg>
+                        )}
+                      </button>
+                    </div>
+                    <div className="mt-2 text-[11px] text-gray-400 text-center">
+                      {APP_NAME} can make mistakes — verify important info.
+                    </div>
+                  </div>
                 </div>
               </div>
-            </div>
-          </div>
+            </>
+          ) : (
+            <ConversationAnalytics
+              loading={analyticsLoading}
+              error={analyticsError || coursesError}
+              analytics={analyticsData}
+              onRefresh={() => loadAnalytics(analyticsCourseId)}
+              courseId={analyticsCourseId}
+              courses={courses}
+              coursesLoading={coursesLoading}
+              onCourseChange={handleAnalyticsCourseChange}
+              onExportCsv={(id) => exportConversation(id, "csv")}
+              onExportPdf={(id) => exportConversation(id, "pdf")}
+              onShare={(id, shareUrl) => handleShareLink(id, shareUrl)}
+              exportBusyId={exportBusyId}
+            />
+          )}
         </div>
       </div>
 

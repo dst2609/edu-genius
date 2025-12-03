@@ -122,7 +122,6 @@ export default function CoursesSection({ onError, resourcesSection }) {
       setCourses(data);
       clearError();
     } catch (e) {
-      console.error("fetch courses failed:", e);
       reportError("Failed to fetch courses");
     }
   };
@@ -143,7 +142,6 @@ export default function CoursesSection({ onError, resourcesSection }) {
       const data = await response.json();
       setExistingChats(data.conversations.filter((chat) => !chat.courseId));
     } catch (error) {
-      console.error("Failed to fetch chats:", error);
       reportError("Failed to fetch existing chats");
     }
   };
@@ -201,7 +199,6 @@ export default function CoursesSection({ onError, resourcesSection }) {
           courseId: courseId,
           courseName: optimistic.name,
         };
-        // console.log("Creating new chat with details:", chatDetails);
 
         const chatResponse = await fetch(`${API_BASE}/chat/conversations`, {
           method: "POST",
@@ -214,27 +211,16 @@ export default function CoursesSection({ onError, resourcesSection }) {
 
         if (!chatResponse.ok) {
           const errorData = await chatResponse.json();
-          console.error("Failed to create chat:", errorData);
           throw new Error(errorData.message || "Failed to create chat");
         }
 
-        // Log the response for debugging
-        const chatData = await chatResponse.json();
-        // console.log("New chat created successfully:", chatData);
+        await chatResponse.json();
       }
 
       // Associate selected existing chats with the course
       if (selectedChats.length > 0) {
-        /*
-        console.log("Linking existing chats:", {
-          selectedChats,
-          courseId,
-          courseName: optimistic.name,
-        });
-        */
         await Promise.all(
           selectedChats.map(async (chatId) => {
-            // console.log(`Updating chat ${chatId} with course ${courseId}`);
             const response = await fetch(
               `${API_BASE}/chat/conversations/${chatId}`,
               {
@@ -255,17 +241,13 @@ export default function CoursesSection({ onError, resourcesSection }) {
               const errorData = await response.json();
               throw new Error(errorData.message || "Failed to associate chat");
             }
-
-            // Log the response for debugging
-            const updateData = await response.json();
-            // console.log(`Chat ${chatId} updated:`, updateData);
+            await response.json();
           })
         );
       }
 
       await refresh();
     } catch (e) {
-      console.error("create course failed:", e);
       const errorMessage =
         e?.response?.data?.message ||
         e?.response?.data?.error ||
@@ -329,7 +311,6 @@ export default function CoursesSection({ onError, resourcesSection }) {
       });
       await refresh();
     } catch (e) {
-      console.error("update course failed:", e);
       reportError(
         e?.response?.data?.message ||
           e?.response?.data?.error ||
@@ -360,64 +341,18 @@ export default function CoursesSection({ onError, resourcesSection }) {
 
       const data = await response.json();
 
-      /*
-      // Debug information
-      console.log('All chats:', data.conversations.map(chat => ({
-        id: chat.id,
-        courseId: chat.courseId,
-        title: chat.title,
-        courseName: chat.courseName
-      })));
-      
-      console.log('Looking for chats with courseId:', courseId);
-
-      // Debug the incoming chat data
-      console.log('Raw chat data:', JSON.stringify(data.conversations, null, 2));
-      */
-
       // Filter conversations that belong to this course
       const matchingChats = data.conversations.filter((chat) => {
-        /*
-        // Detailed debug of each chat object
-        console.log("Examining chat:", {
-          chatId: chat.id,
-          chatTitle: chat.title,
-          rawCourseId: chat.courseId,
-          targetCourseId: courseId,
-          chatData: chat,
-        });
-        */
-
         // Convert both IDs to strings for comparison
         const chatCourseIdStr = (chat.courseId || "").toString();
         const targetCourseIdStr = (courseId || "").toString();
         const matches = chatCourseIdStr === targetCourseIdStr;
 
-        /*
-        console.log("Comparison result:", {
-          chatCourseIdStr,
-          targetCourseIdStr,
-          matches,
-          chatTitle: chat.title,
-        });
-        */
-
         return matches;
       });
 
-      /*
-      console.log("Matched chats:", {
-        count: matchingChats.length,
-        chats: matchingChats.map((chat) => ({
-          id: chat.id,
-          title: chat.title,
-          courseId: chat.courseId,
-        })),
-      });*/
-
       setLinkedChats(matchingChats);
     } catch (error) {
-      console.error("Failed to fetch linked chats:", error);
       reportError("Failed to load course chats");
     } finally {
       setLoadingChats(false);
@@ -454,7 +389,6 @@ export default function CoursesSection({ onError, resourcesSection }) {
       await deleteCourse(removedId);
       await refresh();
     } catch (e) {
-      console.error("delete course failed:", e);
       reportError(
         e?.response?.data?.message ||
           e?.response?.data?.error ||

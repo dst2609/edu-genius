@@ -59,7 +59,6 @@ const Materials = () => {
       });
       setMaterials(response.data.materials || []);
     } catch (error) {
-      console.error("Error fetching materials:", error);
       setError("Failed to load materials");
     }
   };
@@ -119,7 +118,6 @@ const Materials = () => {
       fetchMaterials();
       setError("");
     } catch (error) {
-      console.error("Error uploading material:", error);
       setError(error.response?.data?.error || "Failed to upload material");
     } finally {
       setUploading(false);
@@ -156,7 +154,6 @@ const Materials = () => {
       });
       fetchMaterials();
     } catch (error) {
-      console.error("Error deleting material:", error);
       setError(error.response?.data?.error || "Failed to delete material");
     }
   };

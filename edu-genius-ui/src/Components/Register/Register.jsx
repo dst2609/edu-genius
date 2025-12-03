@@ -52,7 +52,6 @@ const Register = () => {
       });
       navigate("/login");
     } catch (error) {
-      console.log("error: ", error);
       setError(error.response?.data?.error || "Registration failed");
     }
   };

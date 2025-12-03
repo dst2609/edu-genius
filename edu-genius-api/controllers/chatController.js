@@ -6,6 +6,7 @@ const {
   deleteConversation,
   updateConversationTitle,
   updateConversationCourse,
+  getConversationAnalytics,
 } = require("../models/chatModel");
 
 // Provider switch: 'ollama' (default) or 'openai (for online)'
@@ -398,6 +399,23 @@ const updateConversationCourseHandler = async (req, res) => {
   }
 };
 
+const conversationAnalyticsHandler = async (req, res) => {
+  const userId = req.user;
+  const courseId = req.query.courseId || "all";
+
+  if (!userId) {
+    return res.status(401).send("Unauthorized");
+  }
+
+  try {
+    const analytics = await getConversationAnalytics(userId, courseId);
+    res.json(analytics);
+  } catch (error) {
+    const status = error?.status || 500;
+    res.status(status).send(error?.message || "Failed to load analytics");
+  }
+};
+
 module.exports = {
   chatHandler,
   createConversationHandler,
@@ -406,4 +424,5 @@ module.exports = {
   deleteConversationHandler,
   updateConversationTitleHandler,
   updateConversationCourseHandler,
+  conversationAnalyticsHandler,
 };

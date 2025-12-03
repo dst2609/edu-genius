@@ -238,6 +238,89 @@ const updateConversationCourse = async (conversationId, userId, { courseId, cour
   }
 };
 
+/**
+ * Aggregate lightweight analytics for a user's conversations, optionally filtered by course.
+ */
+const getConversationAnalytics = async (userId, courseId) => {
+  const courseFilter =
+    courseId && courseId !== "all"
+      ? { userId, courseId }
+      : { userId };
+
+  const conversations = await prisma.conversation.findMany({
+    where: courseFilter,
+    orderBy: { updatedAt: "desc" },
+  });
+
+  const conversationIds = conversations.map((c) => c.id);
+  const courseName =
+    courseId && courseId !== "all"
+      ? conversations.find((c) => c.courseId === courseId)?.courseName || null
+      : null;
+
+  const start = new Date();
+  start.setHours(0, 0, 0, 0);
+  start.setDate(start.getDate() - 6);
+
+  const chats =
+    conversationIds.length === 0
+      ? []
+      : await prisma.chat.findMany({
+          where: {
+            userId,
+            conversationId: { in: conversationIds },
+            createdAt: { gte: start },
+          },
+          select: { conversationId: true, createdAt: true },
+        });
+
+  const perDay = Array.from({ length: 7 }).map((_, idx) => {
+    const day = new Date(start);
+    day.setDate(start.getDate() + idx);
+    const label = day.toLocaleDateString(undefined, {
+      month: "short",
+      day: "numeric",
+    });
+
+    const count = chats.reduce((acc, chat) => {
+      const sameDay =
+        chat.createdAt.getFullYear() === day.getFullYear() &&
+        chat.createdAt.getMonth() === day.getMonth() &&
+        chat.createdAt.getDate() === day.getDate();
+      return acc + (sameDay ? 1 : 0);
+    }, 0);
+
+    return { label, count };
+  });
+
+  const volumeTotal = perDay.reduce((sum, d) => sum + d.count, 0);
+
+  return {
+    courseId: courseId || "all",
+    courseName,
+    volume: {
+      total: volumeTotal,
+      perDay,
+    },
+    latency: {
+      // Not tracked yet; return null so the frontend can render a placeholder.
+      avgMs: null,
+    },
+    satisfaction: {
+      // Thumbs data not stored yet.
+      likes: 0,
+      dislikes: 0,
+      rate: 100,
+    },
+    conversations: conversations.map((c) => ({
+      id: c.id,
+      title: c.title || "Conversation",
+      updatedAt: c.updatedAt,
+      shareUrl: null,
+    })),
+  };
+};
+
 module.exports = {
   createConversation,
   listConversations,
@@ -246,4 +329,5 @@ module.exports = {
   deleteConversation,
   updateConversationTitle,
   updateConversationCourse,
+  getConversationAnalytics,
 };
