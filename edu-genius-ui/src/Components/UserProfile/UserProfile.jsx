@@ -63,7 +63,13 @@ const UserProfile = () => {
         });
         setLoading(false);
       } catch (err) {
-        setError(err.response?.data?.message || "Failed to fetch profile");
+        if (err?.response?.status === 401) {
+          localStorage.removeItem("token");
+          localStorage.removeItem("role");
+          setError("Your session expired. Please log in again.");
+        } else {
+          setError("Failed to fetch profile. Please try again.");
+        }
         setLoading(false);
       }
     };

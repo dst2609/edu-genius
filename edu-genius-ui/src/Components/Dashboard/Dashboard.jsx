@@ -62,7 +62,13 @@ const Dashboard = () => {
 
         setLoading(false);
       } catch (err) {
-        setError(err.response?.data?.message || "Failed to fetch user data");
+        if (err?.response?.status === 401) {
+          localStorage.removeItem("token");
+          localStorage.removeItem("role");
+          setError("Your session expired. Please log in again.");
+        } else {
+          setError("Failed to fetch user data. Please try again.");
+        }
         setLoading(false);
       }
     })();
