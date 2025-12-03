@@ -21,9 +21,10 @@
 /* ==================== RESPONSIVE GRID ==================== */
 .courses-list {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(3, minmax(260px, 1fr));
   gap: 28px;
   box-sizing: border-box;
+  width: 100%;
 }
 
 /* Canvas-Style Course Card */
@@ -143,6 +144,7 @@
   display: flex;
   flex-direction: column;
   gap: 12px;
+  min-width: 0;
 }
 
 /* Course Title */
@@ -151,7 +153,10 @@
   font-weight: 700;
   color: #1a202c;
   line-height: 1.4;
-  word-break: break-word;
+  word-break: normal;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   margin: 0;
 }
 
@@ -192,6 +197,7 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
+  min-width: 0;
 }
 
 .course-progress-value {
@@ -227,6 +233,7 @@
   justify-content: space-between;
   gap: 8px;
   flex-wrap: wrap;
+  min-width: 0;
 }
 
 .course-actions {
@@ -261,7 +268,7 @@
 /* 2 Columns on Tablet */
 @media (max-width: 1200px) {
   .courses-list {
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: repeat(2, minmax(260px, 1fr));
     gap: 24px;
   }
 }
@@ -269,7 +276,7 @@
 /* 1 Column on Mobile */
 @media (max-width: 768px) {
   .courses-list {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(1, minmax(260px, 1fr));
     gap: 20px;
   }
 

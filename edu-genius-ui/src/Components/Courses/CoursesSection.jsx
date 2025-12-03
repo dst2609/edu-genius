@@ -13,6 +13,7 @@ import {
   IconButton,
   Alert,
   CircularProgress,
+  Slider,
 } from "@mui/material";
 import { useNavigate } from "react-router-dom";
 import { API_BASE } from "../../api/client";
@@ -102,6 +103,7 @@ export default function CoursesSection({ onError, resourcesSection }) {
   const [selectedCourse, setSelectedCourse] = useState(null);
   const [linkedChats, setLinkedChats] = useState([]);
   const [loadingChats, setLoadingChats] = useState(false);
+  const [detailsPercent, setDetailsPercent] = useState(0);
 
   // Delete dialog
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
@@ -359,9 +361,31 @@ export default function CoursesSection({ onError, resourcesSection }) {
     }
   };
 
+  const handleQuickProgressUpdate = async () => {
+    if (!selectedCourse?._id) return;
+    const nextPercent = Math.min(100, Math.max(0, Math.round(detailsPercent)));
+    try {
+      await updateCourse(selectedCourse._id, {
+        name: selectedCourse.name,
+        percent: nextPercent,
+      });
+      setCourses((prev) =>
+        prev.map((c) =>
+          c._id === selectedCourse._id ? { ...c, percent: nextPercent } : c
+        )
+      );
+      setSelectedCourse((prev) =>
+        prev ? { ...prev, percent: nextPercent } : prev
+      );
+    } catch {
+      reportError("Failed to update course progress");
+    }
+  };
+
   const openCourseDetails = (course) => {
     setSelectedCourse(course);
     setIsDetailsOpen(true);
+    setDetailsPercent(Number.isFinite(course?.percent) ? course.percent : 0);
     fetchLinkedChats(course._id);
   };
 
@@ -369,6 +393,7 @@ export default function CoursesSection({ onError, resourcesSection }) {
     setIsDetailsOpen(false);
     setSelectedCourse(null);
     setLinkedChats([]);
+    setDetailsPercent(0);
   };
 
   const confirmDelete = async () => {
@@ -683,11 +708,33 @@ export default function CoursesSection({ onError, resourcesSection }) {
           >
             <Typography variant="h6">{selectedCourse?.name}</Typography>
             <Typography variant="subtitle1" color="primary">
-              {selectedCourse?.percent}%
+              {Math.round(detailsPercent)}%
             </Typography>
           </Box>
         </DialogTitle>
         <DialogContent sx={{ pt: 2 }}>
+          <Box sx={{ mb: 3 }}>
+            <Typography variant="subtitle1" sx={{ mb: 1 }}>
+              Set course progress
+            </Typography>
+            <Slider
+              value={detailsPercent}
+              onChange={(_, val) => setDetailsPercent(val)}
+              aria-label="Course progress"
+              min={0}
+              max={100}
+              valueLabelDisplay="auto"
+            />
+            <Box sx={{ display: "flex", justifyContent: "space-between" }}>
+              <Typography variant="body2" color="text.secondary">
+                {Math.round(detailsPercent)}% complete
+              </Typography>
+              <Button variant="contained" size="small" onClick={handleQuickProgressUpdate}>
+                Save progress
+              </Button>
+            </Box>
+          </Box>
+
           <Typography
             variant="h6"
             sx={{ mb: 2, display: "flex", alignItems: "center", gap: 1 }}

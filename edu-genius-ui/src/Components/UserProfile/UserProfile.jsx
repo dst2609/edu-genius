@@ -16,6 +16,7 @@ import {
 } from "@mui/material";
 import axios from "axios";
 import "./UserProfile.css";
+import ProgressOverview from "../Dashboard/ProgressOverview.jsx";
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL.replace(/\/+$/, "");
 
@@ -473,6 +474,13 @@ const UserProfile = () => {
                 </Box>
               </Grid>
             </Grid>
+
+            <Box className="profile-info-section" sx={{ mt: 3 }}>
+              <Typography variant="h6" className="section-title" sx={{ mb: 2 }}>
+                Progress Overview
+              </Typography>
+              <ProgressOverview user={user} />
+            </Box>
           </>
         )}
       </Box>
