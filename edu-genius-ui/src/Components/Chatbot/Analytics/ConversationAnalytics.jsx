@@ -11,12 +11,9 @@ export default function ConversationAnalytics({
   coursesLoading = false,
   onCourseChange,
   onExportCsv,
-  onExportPdf,
-  onShare,
   exportBusyId,
 }) {
   const volumeSeries = analytics?.volume?.perDay || [];
-  const maxVolume = Math.max(...volumeSeries.map((d) => d.count || 0), 1);
   const courseOptions = [
     { _id: "all", name: "All courses" },
     ...courses.map((c) => ({ _id: c._id, name: c.name })),
@@ -74,30 +71,6 @@ export default function ConversationAnalytics({
         </div>
       ) : analytics ? (
         <div className="p-4 sm:p-6 space-y-4">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-            <StatCard
-              label="Chat volume (7d)"
-              value={analytics.volume?.total ?? 0}
-              helper={analytics.courseName || "All courses"}
-            />
-            <StatCard
-              label="Avg. response latency"
-              value={
-                analytics.latency?.avgMs
-                  ? `${Math.round(analytics.latency.avgMs)} ms`
-                  : "—"
-              }
-              helper="Bot reply time"
-            />
-            <StatCard
-              label="Satisfaction"
-              value={`${analytics.satisfaction?.rate ?? 0}%`}
-              helper={`${analytics.satisfaction?.likes ?? 0} 👍 · ${
-                analytics.satisfaction?.dislikes ?? 0
-              } 👎`}
-            />
-          </div>
-
           <div className="rounded-lg border bg-white shadow-sm">
             <div className="flex items-center justify-between px-4 py-3 border-b">
               <div>
@@ -115,33 +88,7 @@ export default function ConversationAnalytics({
                   No messages yet for this course.
                 </div>
               ) : (
-                <div className="flex items-end gap-2 h-36">
-                  {volumeSeries.map((d, idx) => (
-                    <div
-                      key={idx}
-                      className="flex-1 flex flex-col items-center gap-1"
-                    >
-                      <div
-                        className="w-full bg-indigo-100 rounded-t"
-                        style={{
-                          height: `${Math.max(
-                            10,
-                            Math.round((d.count / maxVolume) * 100)
-                          )}%`,
-                        }}
-                        title={`${d.count} messages`}
-                      >
-                        <div className="w-full h-full bg-indigo-500 rounded-t opacity-80" />
-                      </div>
-                      <div className="text-[10px] text-gray-500 text-center">
-                        {d.label}
-                      </div>
-                      <div className="text-[11px] text-gray-800 font-medium">
-                        {d.count}
-                      </div>
-                    </div>
-                  ))}
-                </div>
+                <ColumnChart data={volumeSeries} height={220} />
               )}
             </div>
           </div>
@@ -188,25 +135,14 @@ export default function ConversationAnalytics({
                             ? new Date(c.updatedAt).toLocaleString()
                             : "—"}
                         </td>
-                        <td className="px-4 py-2">
-                          <div className="flex justify-end gap-2">
+                    <td className="px-4 py-2">
+                          <div className="flex justify-end">
                             <ActionButton
                               onClick={() => onExportCsv?.(c.id)}
                               busy={exportBusyId === c.id}
-                              label="CSV"
+                              label="Export CSV"
+                              variant="primary"
                             />
-                            <ActionButton
-                              onClick={() => onExportPdf?.(c.id)}
-                              busy={exportBusyId === c.id}
-                              label="PDF"
-                            />
-                            <button
-                              onClick={() => onShare?.(c.id, c.shareUrl)}
-                              className="text-[11px] px-3 py-1 rounded-md border border-indigo-200 text-indigo-700 hover:bg-indigo-50"
-                              title="Copy share link"
-                            >
-                              Share
-                            </button>
                           </div>
                         </td>
                       </tr>
@@ -224,24 +160,127 @@ export default function ConversationAnalytics({
   );
 }
 
-function StatCard({ label, value, helper }) {
-  return (
-    <div className="rounded-lg border bg-white shadow-sm p-4">
-      <div className="text-xs text-gray-500">{label}</div>
-      <div className="text-2xl font-semibold text-gray-900 mt-1">{value}</div>
-      {helper && <div className="text-[11px] text-gray-500 mt-1">{helper}</div>}
-    </div>
-  );
-}
-
-function ActionButton({ onClick, busy, label }) {
+function ActionButton({ onClick, busy, label, variant = "ghost" }) {
+  const base =
+    "text-[11px] px-3 py-1.5 rounded-md border text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed";
+  const styles =
+    variant === "primary"
+      ? "border-indigo-500 bg-indigo-600 text-white hover:bg-indigo-700"
+      : "border-gray-200 text-gray-700 hover:bg-gray-100";
   return (
     <button
       onClick={onClick}
       disabled={busy}
-      className="text-[11px] px-3 py-1 rounded-md border border-gray-200 text-gray-700 hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
+      className={`${base} ${styles}`}
     >
       {busy ? "Working…" : label}
     </button>
+  );
+}
+
+function ColumnChart({ data, height = 220 }) {
+  const padded = data.map((d) => ({
+    label: d.label,
+    value: Number.isFinite(d.count) ? d.count : 0,
+  }));
+  const maxVal = Math.max(...padded.map((d) => d.value), 1);
+  const yTicks = [0, 0.25, 0.5, 0.75, 1].map((t) =>
+    Math.round(maxVal * t)
+  );
+
+  return (
+    <div className="w-full">
+      <div className="relative">
+        <svg
+          role="img"
+          aria-label="Chat volume over time"
+          width="100%"
+          height={height}
+          viewBox={`0 0 ${Math.max(240, padded.length * 40)} ${height}`}
+          preserveAspectRatio="xMidYMid meet"
+        >
+          {/* Axes */}
+          <line
+            x1="40"
+            y1={height - 30}
+            x2={Math.max(200, padded.length * 40)}
+            y2={height - 30}
+            stroke="#d1d5db"
+            strokeWidth="1"
+          />
+          <line
+            x1="40"
+            y1="10"
+            x2="40"
+            y2={height - 30}
+            stroke="#d1d5db"
+            strokeWidth="1"
+          />
+
+          {/* Y ticks */}
+          {yTicks.map((tick, idx) => {
+            const y =
+              10 + (1 - tick / maxVal) * (height - 40);
+            return (
+              <g key={`tick-${idx}-${tick}`}>
+                <line
+                  x1="36"
+                  x2="40"
+                  y1={y}
+                  y2={y}
+                  stroke="#d1d5db"
+                  strokeWidth="1"
+                />
+                <text
+                  x="30"
+                  y={y + 4}
+                  fontSize="9"
+                  fill="#6b7280"
+                  textAnchor="end"
+                >
+                  {tick}
+                </text>
+              </g>
+            );
+          })}
+
+          {/* Bars */}
+          {padded.map((point, idx) => {
+            const barWidth = 20;
+            const gap = 16;
+            const x = 60 + idx * (barWidth + gap);
+            const barHeight = Math.max(
+              4,
+              (point.value / maxVal) * (height - 40)
+            );
+            const y = height - 30 - barHeight;
+            const valueY = Math.max(14, y - 8); // prevent value text from clipping above the chart
+
+            return (
+              <g key={point.label}>
+                <rect
+                  x={x}
+                  y={y}
+                  width={barWidth}
+                  height={barHeight}
+                  rx="4"
+                  fill="#6366f1"
+                  opacity="0.85"
+                />
+                <text
+                  x={x + barWidth / 2}
+                  y={height - 14}
+                  fontSize="9"
+                  fill="#6b7280"
+                  textAnchor="middle"
+                >
+                  {point.label}
+                </text>
+              </g>
+            );
+          })}
+        </svg>
+      </div>
+    </div>
   );
 }

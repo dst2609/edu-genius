@@ -402,31 +402,6 @@ export default function App() {
     }
   };
 
-  const handleShareLink = async (conversationId, shareUrl) => {
-    const url =
-      shareUrl ||
-      `${window.location.origin}/share/${conversationId || "conversation"}`;
-    try {
-      if (!navigator?.clipboard) {
-        throw new Error("Clipboard unavailable. Please copy manually.");
-      }
-      await navigator.clipboard.writeText(url);
-      setToast({
-        open: true,
-        message: "Share link copied to clipboard.",
-        actionText: "",
-        onAction: null,
-      });
-    } catch (e) {
-      setToast({
-        open: true,
-        message: e?.message || "Unable to copy share link.",
-        actionText: "",
-        onAction: null,
-      });
-    }
-  };
-
   const handleAnalyticsCourseChange = (courseId) => {
     setAnalyticsCourseId(courseId);
   };
@@ -1272,8 +1247,6 @@ export default function App() {
               coursesLoading={coursesLoading}
               onCourseChange={handleAnalyticsCourseChange}
               onExportCsv={(id) => exportConversation(id, "csv")}
-              onExportPdf={(id) => exportConversation(id, "pdf")}
-              onShare={(id, shareUrl) => handleShareLink(id, shareUrl)}
               exportBusyId={exportBusyId}
             />
           )}
