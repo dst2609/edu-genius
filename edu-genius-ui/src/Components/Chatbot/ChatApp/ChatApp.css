@@ -68,6 +68,8 @@ html, body, #root {
   position: relative;
   height: 100%;
   overflow-y: auto;
+  padding-top: 56px; /* avoid close button overlapping header content on mobile */
+  padding-right: 12px;
 }
 
 .chat-close-button {

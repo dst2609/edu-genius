@@ -17,7 +17,7 @@ export default function Sidebar({
 
   return (
     <aside className={asideClass}>
-      <div className="p-3 border-b flex items-center justify-between">
+      <div className="p-3 pr-12 border-b flex items-center justify-between">
         <div className="text-sm font-semibold">Conversations</div>
         <button
           onClick={onNewChat}
