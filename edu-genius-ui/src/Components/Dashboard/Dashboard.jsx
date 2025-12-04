@@ -256,7 +256,7 @@ const Dashboard = () => {
       {/* Right column: courses + activity below */}
       <div className="dashboard-right-stack">
         <CoursesSection onError={setError} />
-        <div className="dashboard-chat-history">
+        <div className="dashboard-chat-history dashboard-activity">
           <h2>Activity Trend</h2>
           {trend.length === 0 ? (
             <div className="no-chat-history">

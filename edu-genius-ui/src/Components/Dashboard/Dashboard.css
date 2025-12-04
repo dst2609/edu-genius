@@ -20,7 +20,7 @@
   width: 100%;
   box-sizing: border-box;
   gap: 32px;
-  background: linear-gradient(135deg, #FFFFFF 0%, #F9FAFB 100%);
+  background: linear-gradient(135deg, #ffffff 0%, #f9fafb 100%);
   padding: 32px 40px;
   flex-wrap: wrap;
 }
@@ -36,14 +36,14 @@
 
 /* Premium Profile Card */
 .dashboard-profile {
-  background: linear-gradient(135deg, #FFFFFF 0%, #F9FAFB 100%);
+  background: linear-gradient(135deg, #ffffff 0%, #f9fafb 100%);
   border-radius: 16px;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
   padding: 32px 28px;
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  border: 1px solid #E5E7EB;
+  border: 1px solid #e5e7eb;
   transition: all 200ms cubic-bezier(0.4, 0, 0.2, 1);
 }
 
@@ -103,15 +103,21 @@
 
 /* Premium Chat History */
 .dashboard-chat-history {
-  background: linear-gradient(135deg, #FFFFFF 0%, #F9FAFB 100%);
+  background: linear-gradient(135deg, #ffffff 0%, #f9fafb 100%);
   border-radius: 16px;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
   padding: 32px;
   display: flex;
   flex-direction: column;
   box-sizing: border-box;
-  border: 1px solid #E5E7EB;
+  border: 1px solid #e5e7eb;
   transition: all 200ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.dashboard-activity {
+  width: 100%;
+  max-width: 840px;
+  align-self: flex-start;
 }
 
 .dashboard-chat-history:hover {
@@ -134,24 +140,24 @@
 }
 
 .chat-history-item {
-  background: #FFFFFF;
+  background: #ffffff;
   border-radius: 10px;
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
   padding: 14px 16px;
-  border-left: 3px solid #2563EB;
+  border-left: 3px solid #2563eb;
   transition: all 200ms cubic-bezier(0.4, 0, 0.2, 1);
   display: flex;
   justify-content: space-between;
   align-items: center;
-  border: 1px solid #E5E7EB;
+  border: 1px solid #e5e7eb;
 }
 
 .chat-history-item:hover {
-  background: #F9FAFB;
+  background: #f9fafb;
   transform: translateX(4px);
   box-shadow: 0 4px 12px rgba(37, 99, 235, 0.1);
   cursor: pointer;
-  border-color: #2563EB;
+  border-color: #2563eb;
 }
 
 .chat-preview {
@@ -168,18 +174,18 @@
 
 .chat-date {
   font-size: 0.8rem;
-  color: #9CA3AF;
+  color: #9ca3af;
   flex-shrink: 0;
   font-weight: 500;
 }
 
 .no-chat-history {
-  background: linear-gradient(135deg, #F9FAFB 0%, #F3F4F6 100%);
+  background: linear-gradient(135deg, #f9fafb 0%, #f3f4f6 100%);
   border-radius: 10px;
   padding: 32px 24px;
   text-align: center;
-  color: #6B7280;
-  border: 1px dashed #D1D5DB;
+  color: #6b7280;
+  border: 1px dashed #d1d5db;
 }
 
 .no-chat-history p {
@@ -212,14 +218,14 @@
 
 /* Premium Resources Section */
 .dashboard-resources {
-  background: linear-gradient(135deg, #FFFFFF 0%, #F9FAFB 100%);
+  background: linear-gradient(135deg, #ffffff 0%, #f9fafb 100%);
   border-radius: 16px;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
   padding: 32px 28px;
   display: flex;
   flex-direction: column;
   box-sizing: border-box;
-  border: 1px solid #E5E7EB;
+  border: 1px solid #e5e7eb;
   transition: all 200ms cubic-bezier(0.4, 0, 0.2, 1);
   min-width: 320px;
   max-width: 350px;
@@ -255,24 +261,24 @@
     gap: 24px;
     padding: 24px;
   }
-  
+
   .dashboard-left-column {
     width: 100%;
     max-width: 100%;
     min-width: 0;
   }
-  
+
   .dashboard-profile {
     width: 100%;
   }
-  
+
   .dashboard-courses,
   .dashboard-right-stack {
     width: 100%;
     max-width: 100%;
     min-width: 0;
   }
-  
+
   .dashboard-chat-history {
     width: 100%;
   }
@@ -282,7 +288,7 @@
     max-width: 100%;
     min-width: 0;
   }
-  
+
   .courses-list {
     justify-content: flex-start;
   }
