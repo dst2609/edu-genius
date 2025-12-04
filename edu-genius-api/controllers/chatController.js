@@ -284,12 +284,10 @@ const createConversationHandler = async (req, res) => {
   }
 
   try {
-    console.log("Creating conversation with:", { title, courseId, courseName });
     const conversation = await createConversation(userId, title, {
       courseId,
       courseName,
     });
-    console.log("Created conversation:", conversation);
 
     res.status(201).json({
       id: conversation.id,

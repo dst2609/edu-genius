@@ -29,9 +29,6 @@ app.use(express.json({ limit: "1mb" }));
 app.use(morgan("dev"));
 // app.use(rateLimiter); // optional security
 
-// Serve uploaded files statically
-app.use("/uploads", express.static("uploads"));
-
 // ---------- DATABASE CONNECTIONS ----------
 (async () => {
   try {

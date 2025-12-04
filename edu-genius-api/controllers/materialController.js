@@ -1,5 +1,7 @@
 const db = require("../db/database.js");
 const { ObjectId } = require("mongodb");
+const cloudinary = require("cloudinary").v2;
+const https = require("https");
 
 const materialController = {
   // Get all materials (optionally filter by courseId)
@@ -104,14 +106,14 @@ const materialController = {
         return res.status(400).json({ error: "Title and file are required" });
       }
 
-      // Construct file URL
-      const fileUrl = `/uploads/${file.filename}`;
+      // Use the direct Cloudinary URL without modifications
+      const fileUrl = file.path;
 
       const newMaterial = {
         _id: new ObjectId(),
         title,
         description: description || "",
-        fileUrl,
+        fileUrl: fileUrl,
         fileName: file.originalname,
         fileSize: file.size,
         fileType: file.mimetype,
@@ -143,6 +145,42 @@ const materialController = {
         return res.status(400).json({ error: "Invalid material ID" });
       }
 
+      // First, get the material to extract Cloudinary public_id
+      const material = await materialsCollection.findOne({
+        _id: new ObjectId(id),
+        instructorId: new ObjectId(req.user),
+      });
+
+      if (!material) {
+        return res.status(404).json({ error: "Material not found or unauthorized" });
+      }
+
+      // Extract public_id from Cloudinary URL
+      // URL format: https://res.cloudinary.com/{cloud_name}/{resource_type}/upload/v{version}/{public_id}.{format}
+      const urlParts = material.fileUrl.split('/');
+      const uploadIndex = urlParts.indexOf('upload');
+      if (uploadIndex !== -1 && uploadIndex + 2 < urlParts.length) {
+        // Get everything after version number (v123456789)
+        const pathAfterVersion = urlParts.slice(uploadIndex + 2).join('/');
+        // Remove file extension to get public_id
+        const publicId = pathAfterVersion.replace(/\.[^/.]+$/, '');
+        
+        // Determine resource_type from URL
+        const resourceType = urlParts[uploadIndex - 1]; // 'image', 'video', or 'raw'
+        
+        try {
+          // Delete from Cloudinary
+          await cloudinary.uploader.destroy(publicId, { 
+            resource_type: resourceType,
+            invalidate: true 
+          });
+        } catch (cloudinaryErr) {
+          console.error("Error deleting from Cloudinary:", cloudinaryErr);
+          // Continue with database deletion even if Cloudinary deletion fails
+        }
+      }
+
+      // Delete from database
       const result = await materialsCollection.deleteOne({
         _id: new ObjectId(id),
         instructorId: new ObjectId(req.user),
@@ -205,6 +243,43 @@ const materialController = {
     } catch (err) {
       console.error("Error fixing materials:", err);
       res.status(500).json({ error: "Failed to fix materials" });
+    }
+  },
+
+  // Proxy endpoint to serve Cloudinary files
+  async proxyFile(req, res) {
+    try {
+      const { id } = req.params;
+      const materialsCollection = db.getMaterialsCollection();
+
+      if (!ObjectId.isValid(id)) {
+        return res.status(400).json({ error: "Invalid material ID" });
+      }
+
+      const material = await materialsCollection.findOne({ _id: new ObjectId(id) });
+
+      if (!material) {
+        return res.status(404).json({ error: "Material not found" });
+      }
+
+      // Get the Cloudinary URL
+      const cloudinaryUrl = material.fileUrl;
+      
+      // Fetch file from Cloudinary and stream to client
+      https.get(cloudinaryUrl, (cloudinaryRes) => {
+        // Set appropriate headers
+        res.setHeader('Content-Type', material.fileType || 'application/octet-stream');
+        res.setHeader('Content-Disposition', `attachment; filename="${material.fileName}"`);
+        
+        // Pipe the response
+        cloudinaryRes.pipe(res);
+      }).on('error', (err) => {
+        console.error("Error fetching file from Cloudinary:", err);
+        res.status(500).json({ error: "Failed to fetch file" });
+      });
+    } catch (err) {
+      console.error("Error proxying file:", err);
+      res.status(500).json({ error: "Failed to proxy file" });
     }
   },
 };

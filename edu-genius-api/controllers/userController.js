@@ -80,8 +80,6 @@ const userController = {
       };
 
       const result = await usersCollection.insertOne(newUser);
-      console.log("result.acknowledged: ", result.acknowledged);
-      console.log("result is: ", result);
 
       if (result.acknowledged) {
         res.status(201).json(result.insertedId);
@@ -121,7 +119,6 @@ const userController = {
           expiresIn: "1h",
         }
       );
-      console.log("token is: ", token);
 
       res.status(200).json({ token, role: user.role || "student", message: "Logged in successfully" });
     } catch (err) {
@@ -133,25 +130,19 @@ const userController = {
   async getUserProfile(req, res) {
     try {
       const usersCollection = db.getUsersCollection();
-      console.log("req.user:", req.user);
       if (!ObjectId.isValid(req.user)) {
-        console.log("Invalid ObjectId:", req.user);
         return res.status(400).json({ message: "Invalid user ID" });
       }
 
       const userId = new ObjectId(req.user);
-      console.log("Querying user with _id:", userId);
       const user = await usersCollection.findOne(
         { _id: userId },
         { projection: { password: 0 } }
       );
 
       if (!user) {
-        console.log("User not found for _id:", userId);
-        return res.status(404).json({ message: "User not found" });
+        return res.status(404).json({ error: "User not found" });
       }
-
-      console.log("Found user:", user);
       res.status(200).json(user);
     } catch (err) {
       console.error("Error retrieving user profile: ", err);
@@ -163,7 +154,6 @@ const userController = {
     try {
       const usersCollection = db.getUsersCollection();
       if (!ObjectId.isValid(req.user)) {
-        console.log("Invalid ObjectId:", req.user);
         return res.status(400).json({ message: "Invalid user ID" });
       }
 
@@ -200,11 +190,9 @@ const userController = {
       );
 
       if (result.matchedCount === 0) {
-        console.log("User not found for _id:", userId);
         return res.status(404).json({ message: "User not found" });
       }
 
-      console.log("Updated user:", updateData);
       res.status(200).json({ message: "Profile updated successfully" });
     } catch (err) {
       console.error("Error updating user profile: ", err);
